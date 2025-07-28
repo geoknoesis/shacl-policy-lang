@@ -5,7 +5,7 @@ var respecConfig = {
   edDraftURI: "https://geoknoesis.github.io/shacl-policy-lang/index.html",
   title: "SHACL Policy Language",
   subtitle: "A Shapes-Based Access Control Policy Language",
-  publishDate: "2025-07-21",
+  publishDate: "2025-07-28",
   editors: [
     {
       name: "Stephane Fellah",
