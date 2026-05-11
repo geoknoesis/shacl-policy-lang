@@ -1,0 +1,16 @@
+﻿@prefix shpl: <https://w3id.org/shacl-policy-language#> .
+@prefix ex:   <http://example.com/ns#> .
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+
+<>
+  a shpl:Policy ;
+  shpl:profile shpl:Core ;
+  shpl:specVersion <https://w3id.org/shacl-policy-language/spec/v0.3.0> .
+
+# odrl:use implies odrl:read; a policy on the broader action covers the narrower
+odrl:use shpl:impliedAction odrl:read .
+
+ex:UseRule a shpl:Rule ;
+  shpl:effect shpl:Permit ;
+  shpl:target ex:AdultOnlyResource ;
+  shpl:action odrl:use .

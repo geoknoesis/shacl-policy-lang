@@ -1,0 +1,13 @@
+﻿@prefix shpl: <https://w3id.org/shacl-policy-language#> .
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+@prefix ex:   <http://example.com/ns#> .
+
+<>
+  a shpl:Policy ;
+  shpl:profile shpl:Core ;
+  shpl:specVersion <https://w3id.org/shacl-policy-language/spec/v99.0.0> .
+
+ex:DocReadAlways a shpl:Rule ;
+  shpl:effect shpl:Permit ;
+  shpl:target ex:Doc ;
+  shpl:action odrl:read .

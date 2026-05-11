@@ -1,0 +1,52 @@
+﻿@prefix shpl:    <https://w3id.org/shacl-policy-language#> .
+@prefix shpltst: <https://w3id.org/shacl-policy-language/test-suite#> .
+@prefix mf:      <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+
+<>
+  a shpltst:TestManifest ;
+  rdfs:label "SPL conformance test suite - applicability category" ;
+  mf:entries (
+    <#test-applicability-action-match>
+    <#test-applicability-target-class-match>
+    <#test-applicability-action-implication>
+    <#test-applicability-no-policy-applies>
+  ) .
+
+<#test-applicability-action-match>
+  a shpltst:TestCase ;
+  rdfs:label "Action match yields Permit when allow condition holds" ;
+  shpltst:category "applicability" ;
+  shpltst:requiredProfile shpl:Core ;
+  shpltst:policyGraph <../policies/policy-allow-read-adult.ttl> ;
+  shpltst:requestGraph <../requests/request-alice-read-adult.ttl> ;
+  shpltst:expectedOutcome shpl:Permit ;
+  shpltst:expectedAppliedRule <http://example.com/ns#AdultAccessRule> .
+
+<#test-applicability-target-class-match>
+  a shpltst:TestCase ;
+  rdfs:label "Class target matches a typed resource" ;
+  shpltst:category "applicability" ;
+  shpltst:requiredProfile shpl:Core ;
+  shpltst:policyGraph <../policies/policy-allow-class-target.ttl> ;
+  shpltst:requestGraph <../requests/request-document-instance.ttl> ;
+  shpltst:expectedOutcome shpl:Permit .
+
+<#test-applicability-action-implication>
+  a shpltst:TestCase ;
+  rdfs:label "Rule on broad action covers narrower request action" ;
+  shpltst:category "action-implication" ;
+  shpltst:requiredProfile shpl:Core ;
+  shpltst:policyGraph <../policies/policy-allow-use-implies-read.ttl> ;
+  shpltst:requestGraph <../requests/request-alice-read-adult.ttl> ;
+  shpltst:expectedOutcome shpl:Permit .
+
+<#test-applicability-no-policy-applies>
+  a shpltst:TestCase ;
+  rdfs:label "No applicable rule yields NotMatched" ;
+  shpltst:category "applicability" ;
+  shpltst:requiredProfile shpl:Core ;
+  shpltst:policyGraph <../policies/policy-allow-read-adult.ttl> ;
+  shpltst:requestGraph <../requests/request-alice-write-adult.ttl> ;
+  shpltst:expectedOutcome shpl:NotMatched .

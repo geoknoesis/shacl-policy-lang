@@ -1,0 +1,21 @@
+﻿@prefix shpl:    <https://w3id.org/shacl-policy-language#> .
+@prefix shpltst: <https://w3id.org/shacl-policy-language/test-suite#> .
+@prefix mf:      <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+
+<>
+  a shpltst:TestManifest ;
+  rdfs:label "SPL conformance test suite - holder binding" ;
+  mf:entries (
+    <#test-binding-mismatch-fails>
+  ) .
+
+<#test-binding-mismatch-fails>
+  a shpltst:TestCase ;
+  rdfs:label "Credential whose subject does not match agent yields HolderBindingFailed" ;
+  shpltst:category "holder-binding" ;
+  shpltst:requiredProfile shpl:Core ;
+  shpltst:policyGraph <../policies/policy-allow-read-adult.ttl> ;
+  shpltst:requestGraph <../requests/request-binding-mismatch.ttl> ;
+  shpltst:expectedOutcome shpl:Indeterminate ;
+  shpltst:expectedReason shpl:HolderBindingFailed .

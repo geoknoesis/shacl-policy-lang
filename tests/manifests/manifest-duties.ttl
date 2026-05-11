@@ -1,0 +1,64 @@
+﻿@prefix shpl:    <https://w3id.org/shacl-policy-language#> .
+@prefix shpltst: <https://w3id.org/shacl-policy-language/test-suite#> .
+@prefix mf:      <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ex:      <http://example.com/ns#> .
+
+<>
+  a shpltst:TestManifest ;
+  rdfs:label "SPL conformance test suite - duties and obligations" ;
+  mf:entries (
+    <#test-duty-emits-mustlog>
+    <#test-duty-precondition-blocks>
+    <#test-duty-postcondition-allows-action>
+    <#test-deny-remedy-attached>
+    <#test-duty-consequence-on-failure>
+  ) .
+
+<#test-duty-emits-mustlog>
+  a shpltst:TestCase ;
+  rdfs:label "Permit with a duty emitting an audit payload" ;
+  shpltst:category "duties" ;
+  shpltst:requiredProfile shpl:Core ;
+  shpltst:policyGraph <../policies/policy-allow-read-with-log-duty.ttl> ;
+  shpltst:requestGraph <../requests/request-alice-read-doc.ttl> ;
+  shpltst:expectedOutcome shpl:Permit ;
+  shpltst:expectedObligationPayloadPredicate ex:auditSink .
+
+<#test-duty-precondition-blocks>
+  a shpltst:TestCase ;
+  rdfs:label "Precondition duty MUST be Pending and block enforcement" ;
+  shpltst:category "duties" ;
+  shpltst:requiredProfile shpl:Core ;
+  shpltst:policyGraph <../policies/policy-allow-with-consent-precondition.ttl> ;
+  shpltst:requestGraph <../requests/request-alice-no-consent.ttl> ;
+  shpltst:expectedOutcome shpl:Permit ;
+  shpltst:expectedObligationPayloadPredicate ex:consentRecord .
+
+<#test-duty-postcondition-allows-action>
+  a shpltst:TestCase ;
+  rdfs:label "Postcondition duty allows immediate action; obligation reported async" ;
+  shpltst:category "duties" ;
+  shpltst:requiredProfile shpl:Core ;
+  shpltst:policyGraph <../policies/policy-allow-with-notify-postcondition.ttl> ;
+  shpltst:requestGraph <../requests/request-alice-read-doc.ttl> ;
+  shpltst:expectedOutcome shpl:Permit ;
+  shpltst:expectedObligationPayloadPredicate ex:notify .
+
+<#test-deny-remedy-attached>
+  a shpltst:TestCase ;
+  rdfs:label "Deny materializes a breach-response duty" ;
+  shpltst:category "duties" ;
+  shpltst:requiredProfile shpl:Core ;
+  shpltst:policyGraph <../policies/policy-deny-with-breach-duty.ttl> ;
+  shpltst:requestGraph <../requests/request-bob-age-10.ttl> ;
+  shpltst:expectedOutcome shpl:Deny .
+
+<#test-duty-consequence-on-failure>
+  a shpltst:TestCase ;
+  rdfs:label "Failed duty triggers consequence chain" ;
+  shpltst:category "duties" ;
+  shpltst:requiredProfile shpl:Core ;
+  shpltst:policyGraph <../policies/policy-duty-with-consequence.ttl> ;
+  shpltst:requestGraph <../requests/request-alice-read-doc.ttl> ;
+  shpltst:expectedOutcome shpl:Permit .

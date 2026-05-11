@@ -1,0 +1,80 @@
+﻿@prefix shpl:    <https://w3id.org/shacl-policy-language#> .
+@prefix shpltst: <https://w3id.org/shacl-policy-language/test-suite#> .
+@prefix mf:      <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dct:     <http://purl.org/dc/terms/> .
+
+# =============================================================
+# SPL Conformance Test Suite - manifest vocabulary
+# Defines the term schema for manifest-*.ttl files in this folder.
+# =============================================================
+
+shpltst:TestManifest a rdfs:Class ;
+  rdfs:subClassOf mf:Manifest ;
+  rdfs:label "SPL test manifest" ;
+  rdfs:comment "Container of SPL conformance tests in declaration order." .
+
+shpltst:TestCase a rdfs:Class ;
+  rdfs:label "SPL conformance test case" ;
+  rdfs:comment "One PDP evaluation scenario with policy graph, request graph, and expected decision response." .
+
+shpltst:category a rdf:Property ;
+  rdfs:label "category" ;
+  rdfs:comment "Test category: applicability, deny-overrides, duties, holder-binding, node-expressions, profiles, conflict-strategies, action-implication, federation, capabilities." .
+
+shpltst:requiredCapability a rdf:Property ;
+  rdfs:label "required capability" ;
+  rdfs:comment "Capabilities the PDP must support to run this test; tests are skipped if any capability is missing." .
+
+shpltst:requiredProfile a rdf:Property ;
+  rdfs:label "required profile" ;
+  rdfs:comment "Execution profile (shpl:Core or shpl:Full) under which this test must be run." .
+
+shpltst:policyGraph a rdf:Property ;
+  rdfs:label "policy graph" ;
+  rdfs:comment "Path or IRI of the SPL policy under test." .
+
+shpltst:requestGraph a rdf:Property ;
+  rdfs:label "request graph" ;
+  rdfs:comment "Path or IRI of the access request graph." .
+
+shpltst:expectedOutcome a rdf:Property ;
+  rdfs:label "expected outcome" ;
+  rdfs:comment "One of shpl:Permit, shpl:Deny, shpl:NotMatched, shpl:NotSatisfied, shpl:Indeterminate." .
+
+shpltst:expectedReason a rdf:Property ;
+  rdfs:label "expected reason" ;
+  rdfs:comment "Reason IRI(s) that MUST appear on the decision response." .
+
+shpltst:expectedAppliedRule a rdf:Property ;
+  rdfs:label "expected applied rule" ;
+  rdfs:comment "Rule IRI(s) that MUST appear in shpl:appliedRule on the decision response." .
+
+shpltst:expectedObligationPayloadPredicate a rdf:Property ;
+  rdfs:label "expected obligation payload predicate" ;
+  rdfs:comment "Payload predicate IRI(s) that MUST appear on at least one obligation node (shpl:Obligation) in the decision response." .
+
+shpltst:expectedDocumentValid a rdf:Property ;
+  rdfs:label "expected document valid" ;
+  rdfs:comment "If true, the policy graph MUST validate against the SPL-SPL shapes graph; if false, validation MUST report at least one violation." .
+
+shpltst:dryRun a rdf:Property ;
+  rdfs:label "dry-run" ;
+  rdfs:comment "If true, the request is evaluated with shpl:dryRun true and side effects MUST NOT occur." .
+
+shpltst:frozenHookOutput a rdf:Property ;
+  rdfs:label "frozen hook output" ;
+  rdfs:comment "Pins the runtime value the runner MUST inject for a node-expression hook in this test, replacing live PIP evaluation. Each entry has shpltst:hook (the hook IRI) and shpltst:value (the RDF term to return)." .
+
+shpltst:hook a rdf:Property ;
+  rdfs:label "hook" ;
+  rdfs:comment "The shpl:Hook IRI being pinned." .
+
+shpltst:value a rdf:Property ;
+  rdfs:label "value" ;
+  rdfs:comment "Fixed value the runner returns when the pinned hook is invoked." .
+
+shpltst:expectedDecisionGraph a rdf:Property ;
+  rdfs:label "expected decision graph" ;
+  rdfs:comment "Path to a Turtle file containing the expected Decision graph for full RDF-isomorphism comparison after normalization." .

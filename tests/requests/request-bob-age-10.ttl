@@ -1,0 +1,18 @@
+﻿@prefix shpl: <https://w3id.org/shacl-policy-language#> .
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+@prefix cred: <https://www.w3.org/2018/credentials#> .
+@prefix ex:   <http://example.com/ns#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+ex:BobAgeCredential a cred:VerifiableCredential ;
+  cred:issuer <did:example:gov> ;
+  cred:credentialSubject [
+    cred:id <did:example:bob> ;
+    ex:age 10
+  ] .
+
+ex:Request_Bob a shpl:AccessRequest ;
+  shpl:agent <did:example:bob> ;
+  shpl:action odrl:read ;
+  shpl:target ex:AdultOnlyResource ;
+  shpl:credential ex:BobAgeCredential  .

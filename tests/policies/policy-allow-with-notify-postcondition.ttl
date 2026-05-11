@@ -1,0 +1,25 @@
+﻿@prefix shpl: <https://w3id.org/shacl-policy-language#> .
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix ex:   <http://example.com/ns#> .
+
+<>
+  a shpl:Policy ;
+  shpl:profile shpl:Core ;
+  shpl:specVersion <https://w3id.org/shacl-policy-language/spec/v0.3.0> .
+
+ex:NotifyDuty a shpl:Duty ;
+  shpl:triggersOn shpl:OnRuleApplied ;
+  shpl:timing shpl:Postcondition ;
+  sh:rule [
+    a sh:TripleRule ;
+    sh:subject sh:this ;
+    sh:predicate ex:notify ;
+    sh:object ex:Compliance
+  ] .
+
+ex:NotifyRule a shpl:Rule ;
+  shpl:effect shpl:Permit ;
+  shpl:target ex:Doc ;
+  shpl:action odrl:read ;
+  shpl:duty ex:NotifyDuty .

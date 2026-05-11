@@ -1,0 +1,37 @@
+﻿@prefix shpl: <https://w3id.org/shacl-policy-language#> .
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix cred: <https://www.w3.org/2018/credentials#> .
+@prefix ex:   <http://example.com/ns#> .
+
+<>
+  a shpl:Policy ;
+  shpl:profile shpl:Core ;
+  shpl:specVersion <https://w3id.org/shacl-policy-language/spec/v0.3.0> ;
+  shpl:conflictStrategy shpl:DenyOverrides .
+
+ex:AdultAccessRule a shpl:Rule ;
+  shpl:effect shpl:Permit ;
+  shpl:target ex:AdultOnlyResource ;
+  shpl:action odrl:read ;
+  shpl:condition [
+    a sh:NodeShape ;
+    sh:targetClass shpl:AccessRequest ;
+    sh:property [
+      sh:path shpl:credential ;
+      sh:qualifiedValueShape [
+        a sh:NodeShape ;
+        sh:property [
+          sh:path cred:credentialSubject ;
+          sh:node [
+            a sh:NodeShape ;
+            sh:property [
+              sh:path ex:age ;
+              sh:minInclusive 18 ;
+            ] ;
+          ] ;
+        ] ;
+      ] ;
+      sh:qualifiedMinCount 1 ;
+    ] ;
+  ] .

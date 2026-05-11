@@ -1,0 +1,239 @@
+﻿@prefix shpl: <https://w3id.org/shacl-policy-language#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# =============================================================
+# SPL-SPL shapes graph (SHACL-for-SHACL), v0.3.0
+# Validates SPL policies and decision graphs. Obligation timing and
+# credential-dependent Deny behavior are normative in the SPL specification
+# (index.html); shapes here do not encode those runtime rules.
+# =============================================================
+
+# ---- Policy --------------------------------------------------
+
+shpl:PolicyShape a sh:NodeShape ;
+  sh:targetClass shpl:Policy ;
+  sh:property [
+    sh:path shpl:profile ;
+    sh:minCount 1 ; sh:maxCount 1 ;
+    sh:in ( shpl:Core shpl:Full ) ;
+    sh:message "Policy MUST declare exactly one execution profile (shpl:Core or shpl:Full)." ;
+  ] ;
+  sh:property [
+    sh:path shpl:specVersion ;
+    sh:minCount 1 ; sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:message "Policy MUST declare exactly one shpl:specVersion." ;
+  ] ;
+  sh:property [
+    sh:path shpl:conflictStrategy ;
+    sh:maxCount 1 ;
+    sh:in ( shpl:DenyOverrides shpl:PermitOverrides ) ;
+  ] ;
+  sh:property [
+    sh:path shpl:detectConflicts ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:boolean ;
+    sh:description "When true, Permit/Deny conflict yields Indeterminate with shpl:Conflict before overrides; conformant PDPs MUST NOT then materialize shpl:OnRuleApplied or shpl:OnRuleViolated duties from the conflicting satisfied Permit/Deny rules (see SPL evaluation semantics)."@en ;
+  ] ;
+  sh:property [
+    sh:path shpl:usesActionVocabulary ;
+    sh:nodeKind sh:IRI ;
+  ] .
+
+# ---- Rules ---------------------------------------------------
+
+shpl:RuleShape a sh:NodeShape ;
+  sh:targetClass shpl:Rule ;
+  sh:property [
+    sh:path shpl:effect ;
+    sh:minCount 1 ; sh:maxCount 1 ;
+    sh:in ( shpl:Permit shpl:Deny shpl:Obligate ) ;
+    sh:message "Every rule MUST have exactly one shpl:effect." ;
+  ] ;
+  sh:property [
+    sh:path shpl:action ;
+    sh:minCount 1 ; sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:message "Every rule MUST have exactly one shpl:action." ;
+  ] ;
+  sh:property [
+    sh:path shpl:target ;
+    sh:minCount 1 ;
+    sh:message "Every rule MUST have at least one shpl:target." ;
+  ] ;
+  sh:property [
+    sh:path shpl:condition ;
+    sh:maxCount 1 ;
+    sh:class sh:NodeShape ;
+    sh:message "shpl:condition, when present, MUST be a single SHACL NodeShape." ;
+  ] ;
+  sh:property [
+    sh:path shpl:duty ;
+    sh:class shpl:Duty ;
+    sh:message "Rule-level shpl:duty values MUST be shpl:Duty nodes." ;
+  ] .
+
+# ---- Duties --------------------------------------------------
+
+shpl:DutyShape a sh:NodeShape ;
+  sh:targetClass shpl:Duty ;
+  sh:property [
+    sh:path shpl:triggersOn ;
+    sh:minCount 1 ; sh:maxCount 1 ;
+    sh:in ( shpl:OnRuleApplied shpl:OnRuleViolated shpl:OnObligationFailed ) ;
+    sh:message "Every duty MUST declare exactly one shpl:triggersOn value." ;
+  ] ;
+  sh:property [
+    sh:path shpl:timing ;
+    sh:maxCount 1 ;
+    sh:in ( shpl:Precondition shpl:Postcondition ) ;
+  ] ;
+  sh:property [
+    sh:path sh:rule ;
+    sh:minCount 1 ;
+    sh:message "Every duty MUST emit obligation payloads using SHACL sh:rule." ;
+  ] ;
+  sh:property [
+    sh:path shpl:duty ;
+    sh:class shpl:Duty ;
+    sh:message "Nested shpl:duty values MUST be shpl:Duty nodes." ;
+  ] .
+
+# ---- Access request ------------------------------------------
+
+shpl:AccessRequestShape a sh:NodeShape ;
+  sh:targetClass shpl:AccessRequest ;
+  sh:property [
+    sh:path shpl:agent ;
+    sh:minCount 1 ; sh:maxCount 1 ;
+    sh:message "AccessRequest MUST have exactly one shpl:agent." ;
+  ] ;
+  sh:property [
+    sh:path shpl:target ;
+    sh:minCount 1 ; sh:maxCount 1 ;
+    sh:message "AccessRequest MUST have exactly one shpl:target." ;
+  ] ;
+  sh:property [
+    sh:path shpl:action ;
+    sh:minCount 1 ; sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:message "AccessRequest MUST have exactly one shpl:action." ;
+  ] ;
+  sh:property [
+    sh:path shpl:dryRun ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:boolean ;
+  ] ;
+  sh:property [
+    sh:path shpl:explanationLevel ;
+    sh:maxCount 1 ;
+    sh:in ( shpl:NoExplanation shpl:SummaryExplanation shpl:FullExplanation ) ;
+  ] .
+
+# ---- Decision response ---------------------------------------
+
+shpl:DecisionShape a sh:NodeShape ;
+  sh:targetClass shpl:Decision ;
+  sh:property [
+    sh:path shpl:outcome ;
+    sh:minCount 1 ; sh:maxCount 1 ;
+    sh:in ( shpl:Permit shpl:Deny shpl:NotMatched shpl:NotSatisfied shpl:Indeterminate ) ;
+    sh:message "Decision MUST carry exactly one shpl:outcome." ;
+  ] ;
+  sh:property [
+    sh:path shpl:requestRef ;
+    sh:minCount 1 ; sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:message "Decision MUST carry exactly one shpl:requestRef as an IRI." ;
+  ] ;
+  sh:property [
+    sh:path shpl:validUntil ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:dateTime ;
+  ] ;
+  sh:property [
+    sh:path shpl:appliedRule ;
+    sh:class shpl:Rule ;
+  ] ;
+  sh:property [
+    sh:path shpl:obligation ;
+    sh:class shpl:Obligation ;
+    sh:node shpl:ObligationShape ;
+  ] .
+
+shpl:ObligationShape a sh:NodeShape ;
+  sh:targetClass shpl:Obligation ;
+  sh:property [
+    sh:path shpl:fromRule ;
+    sh:minCount 1 ; sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:message "Each obligation node on a Decision MUST carry exactly one shpl:fromRule IRI." ;
+  ] ;
+  sh:property [
+    sh:path shpl:state ;
+    sh:maxCount 1 ;
+    sh:in ( shpl:ObligationPending shpl:ObligationInProgress shpl:ObligationSatisfied shpl:ObligationFailed shpl:ObligationCompensated ) ;
+  ] ;
+  sh:property [
+    sh:path shpl:timing ;
+    sh:maxCount 1 ;
+    sh:in ( shpl:Precondition shpl:Postcondition ) ;
+  ] .
+
+# ---- Extension descriptors -----------------------------------
+
+shpl:HookShape a sh:NodeShape ;
+  sh:targetClass shpl:Hook ;
+  sh:property [
+    sh:path shpl:freshnessSeconds ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:nonNegativeInteger ;
+  ] .
+
+shpl:ConflictStrategyShape a sh:NodeShape ;
+  sh:targetClass shpl:ConflictStrategy ;
+  sh:property [
+    sh:path shpl:isDeterministic ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:boolean ;
+  ] ;
+  sh:property [
+    sh:path shpl:isMonotonic ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:boolean ;
+  ] ;
+  sh:property [
+    sh:path shpl:isIdempotent ;
+    sh:maxCount 1 ;
+    sh:datatype xsd:boolean ;
+  ] .
+
+shpl:CapabilityDescriptorShape a sh:NodeShape ;
+  sh:targetClass shpl:CapabilityDescriptor ;
+  sh:property [
+    sh:path shpl:supportsExecutionProfile ;
+    sh:minCount 1 ;
+    sh:in ( shpl:Core shpl:Full ) ;
+  ] ;
+  sh:property [
+    sh:path shpl:supportedSpecVersion ;
+    sh:minCount 1 ;
+  ] .
+
+# ---- Profile manifest ----------------------------------------
+
+shpl:ProfileShape a sh:NodeShape ;
+  sh:targetClass shpl:Profile ;
+  sh:property [
+    sh:path shpl:profileVersion ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path shpl:appliesToExecutionProfile ;
+    sh:in ( shpl:Core shpl:Full ) ;
+  ] .
+
+# ---- Built-in shape recognition ------------------------------
+# PDPs MUST treat the absence of shpl:condition on a matched rule as a
+# satisfied condition. No built-in shape IRIs are required by v0.3.

@@ -1,0 +1,728 @@
+@prefix shpl:  <https://w3id.org/shacl-policy-language#> .
+@prefix splsv: <https://w3id.org/shacl-policy-language/spec/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix sh:    <http://www.w3.org/ns/shacl#> .
+@prefix cred:  <https://www.w3.org/2018/credentials#> .
+@prefix odrl:  <http://www.w3.org/ns/odrl/2/> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix dct:   <http://purl.org/dc/terms/> .
+@prefix prov:  <http://www.w3.org/ns/prov#> .
+@prefix vann:  <http://purl.org/vocab/vann/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================================
+# SHACL Policy Language (SPL) — canonical ontology, v0.3.0
+#
+# v0.3 core is a thin vocabulary over SHACL, ODRL actions, Dublin Core, SKOS,
+# and PROV. Constraint logic is SHACL-only; operational shortcuts and wire
+# concerns live in companion profiles.
+# ============================================================================
+
+<https://w3id.org/shacl-policy-language>
+  a owl:Ontology ;
+  dct:title "SHACL Policy Language (SPL)"@en ;
+  dct:description "A SHACL 1.2 profile for semantic policy rules over RDF access-request graphs and Verifiable Credentials."@en ;
+  dct:created "2026-05-10"^^xsd:date ;
+  dct:license <https://creativecommons.org/licenses/by/4.0/> ;
+  dct:publisher "W3C Community Group (proposed)"@en ;
+  vann:preferredNamespacePrefix "shpl" ;
+  vann:preferredNamespaceUri "https://w3id.org/shacl-policy-language#" ;
+  owl:versionIRI splsv:v0.3.0 ;
+  owl:versionInfo "0.3.0" ;
+  rdfs:seeAlso splsv:v0.3.0 ;
+  rdfs:seeAlso <http://docs.oasis-open.org/xacml/3.0/xacml-3.0-core-spec-os-en.html> ;
+  rdfs:seeAlso <https://www.w3.org/TR/odrl-model/> ;
+  rdfs:seeAlso <https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-162.pdf> .
+
+# ----------------------------------------------------------------------------
+# Stability metadata
+# ----------------------------------------------------------------------------
+
+shpl:Stability a owl:Class ;
+  rdfs:label "Stability"@en ;
+  rdfs:comment "Stability commitment for an SPL term."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+shpl:stability a owl:ObjectProperty ;
+  rdfs:label "stability"@en ;
+  rdfs:comment "Stability of the term: shpl:Stable or shpl:Experimental."@en ;
+  rdfs:range shpl:Stability ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+shpl:Stable       a shpl:Stability ; rdfs:label "Stable"@en       ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+shpl:Experimental a shpl:Stability ; rdfs:label "Experimental"@en ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+# ============================================================================
+# 1. Rule core
+# ============================================================================
+
+shpl:Policy a owl:Class ;
+  rdfs:label "Policy"@en ;
+  rdfs:comment "SPL policy graph: one or more rules, an execution profile, a specification version, and optional extension metadata (same role as odrl:Policy for evaluation, distinct IRI)."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:Rule a owl:Class ;
+  rdfs:label "Rule"@en ;
+  rdfs:comment "A policy rule with an effect, target, action, optional SHACL condition, and optional obligations."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:RuleEffect a owl:Class ;
+  rdfs:label "Rule effect"@en ;
+  rdfs:comment "Closed value set for the effect of a rule."@en ;
+  owl:oneOf ( shpl:Permit shpl:Deny shpl:Obligate ) ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:effect a owl:ObjectProperty ;
+  rdfs:label "effect"@en ;
+  rdfs:comment "Effect contributed by a satisfied applicable rule."@en ;
+  rdfs:domain shpl:Rule ;
+  rdfs:range shpl:RuleEffect ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:target a owl:ObjectProperty ;
+  rdfs:label "target"@en ;
+  rdfs:comment "Access dimension shared by rules and requests: the governed resource (ODRL Asset). Rules declare one or more covered targets; requests declare exactly one requested target."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:action a owl:ObjectProperty ;
+  rdfs:label "action"@en ;
+  rdfs:comment "Access dimension shared by rules and requests: the governed or requested action IRI, preferably from the ODRL action vocabulary."@en ;
+  rdfs:range shpl:Action ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:condition a owl:ObjectProperty ;
+  rdfs:label "condition"@en ;
+  rdfs:comment "SHACL NodeShape evaluated with the AccessRequest as focus node. If absent, the condition is satisfied whenever target and action match."@en ;
+  rdfs:domain shpl:Rule ;
+  rdfs:range sh:NodeShape ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:duty a owl:ObjectProperty ;
+  rdfs:label "duty"@en ;
+  rdfs:comment "Authoring-time link from a Rule or Duty to a Duty specification (parallel to odrl:duty on permissions; SPL attaches duties to rules or nested duties). Yields shpl:Obligation nodes on a Decision when evaluated."@en ;
+  rdfs:range shpl:Duty ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:obligation a owl:ObjectProperty ;
+  rdfs:label "obligation"@en ;
+  rdfs:comment "Decision-time link from a Decision to an obligation node (XACML-style obligation on the authorization decision)."@en ;
+  rdfs:domain shpl:Decision ;
+  rdfs:range shpl:Obligation ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:profile a owl:ObjectProperty ;
+  rdfs:label "execution profile"@en ;
+  rdfs:comment "Declares the execution profile on a Policy."@en ;
+  rdfs:domain shpl:Policy ;
+  rdfs:range shpl:ExecutionProfile ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:conformsToProfile a owl:ObjectProperty ;
+  rdfs:label "conforms to profile"@en ;
+  rdfs:comment "Declares conformance to one or more domain profiles."@en ;
+  rdfs:range shpl:Profile ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:specVersion a owl:ObjectProperty ;
+  rdfs:label "spec version"@en ;
+  rdfs:comment "IRI of the SPL specification version this document targets."@en ;
+  rdfs:domain shpl:Policy ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:requiredCapability a owl:ObjectProperty ;
+  rdfs:label "required capability"@en ;
+  rdfs:comment "Capability IRI the processor MUST support to evaluate this document."@en ;
+  rdfs:range shpl:Capability ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:conflictStrategy a owl:ObjectProperty ;
+  rdfs:label "conflict strategy"@en ;
+  rdfs:comment "Conflict-resolution strategy for combining per-rule results."@en ;
+  rdfs:domain shpl:Policy ;
+  rdfs:range shpl:ConflictStrategy ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:detectConflicts a owl:DatatypeProperty ;
+  rdfs:label "detect conflicts"@en ;
+  rdfs:comment "When true, an SPL policy with both satisfied Permit and Deny contributions yields Indeterminate with reason shpl:Conflict before override resolution. In that case conformant PDPs MUST NOT materialize duties whose shpl:triggersOn is shpl:OnRuleApplied or shpl:OnRuleViolated from those conflicting satisfied Permit or Deny rules; satisfied Obligate rules still materialize obligations."@en ;
+  rdfs:domain shpl:Policy ;
+  rdfs:range xsd:boolean ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:usesActionVocabulary a owl:ObjectProperty ;
+  rdfs:label "uses action vocabulary"@en ;
+  rdfs:comment "Vocabulary graph whose action implication triples are in scope for deterministic action closure."@en ;
+  rdfs:domain shpl:Policy ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:assigner a owl:ObjectProperty ;
+  rdfs:label "assigner"@en ;
+  rdfs:comment "Party issuing or administering the rule."@en ;
+  rdfs:domain shpl:Rule ;
+  rdfs:range shpl:Party ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  skos:exactMatch odrl:assigner ;
+  shpl:stability shpl:Stable .
+
+shpl:assignee a owl:ObjectProperty ;
+  rdfs:label "assignee"@en ;
+  rdfs:comment "Party to whom the rule is directed."@en ;
+  rdfs:domain shpl:Rule ;
+  rdfs:range shpl:Party ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  skos:exactMatch odrl:assignee ;
+  shpl:stability shpl:Stable .
+
+# ============================================================================
+# 2. Parties and assets
+# ============================================================================
+
+shpl:Party a owl:Class ;
+  rdfs:label "Party"@en ;
+  rdfs:comment "Any actor: individual, organization, or service."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:PartyCollection a owl:Class ;
+  rdfs:subClassOf shpl:Party ;
+  rdfs:label "PartyCollection"@en ;
+  rdfs:comment "Group of parties; members are linked via shpl:partOf."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:Asset a owl:Class ;
+  rdfs:label "Asset"@en ;
+  rdfs:comment "A protected resource."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:AssetCollection a owl:Class ;
+  rdfs:subClassOf shpl:Asset ;
+  rdfs:label "AssetCollection"@en ;
+  rdfs:comment "A set of assets; members are linked via shpl:partOf."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:partOf a owl:ObjectProperty ;
+  rdfs:label "part of"@en ;
+  rdfs:comment "Membership relation from a member to a collection."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+# ============================================================================
+# 3. Actions
+# ============================================================================
+
+shpl:Action a owl:Class ;
+  rdfs:label "Action"@en ;
+  rdfs:comment "An action that rules govern. SPL adopts the ODRL action vocabulary by reference; profiles MAY introduce additional action IRIs."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:impliedAction a owl:ObjectProperty , owl:TransitiveProperty ;
+  rdfs:label "implied action"@en ;
+  rdfs:comment "A broad action implies a narrower action for matching. This property is inverse of odrl:includedIn."@en ;
+  rdfs:domain shpl:Action ;
+  rdfs:range shpl:Action ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  owl:inverseOf odrl:includedIn ;
+  shpl:stability shpl:Stable .
+
+# ============================================================================
+# 4. Duties and decision obligations
+# ============================================================================
+
+shpl:Duty a owl:Class ;
+  rdfs:label "Duty"@en ;
+  rdfs:comment "An obligation specification attached to a rule or another duty. Its operational payload is emitted by SHACL rules. Materialization timing follows shpl:triggersOn and the normative evaluation algorithm (including suppression of OnRuleApplied and OnRuleViolated from conflicting satisfied Permit/Deny rules when the outcome is Indeterminate with shpl:Conflict)."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:Obligation a owl:Class ;
+  rdfs:label "Obligation"@en ;
+  rdfs:comment "Obligation on an authorization decision (compare XACML): a node linked from shpl:Decision via shpl:obligation, produced from a shpl:Duty during evaluation. Carries provenance (shpl:fromRule), timing, lifecycle state, and payload triples."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:ObligationTrigger a owl:Class ;
+  rdfs:label "Obligation trigger"@en ;
+  rdfs:comment "Closed value set describing when an attached duty is materialized."@en ;
+  owl:oneOf ( shpl:OnRuleApplied shpl:OnRuleViolated shpl:OnObligationFailed ) ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:OnRuleApplied a shpl:ObligationTrigger ;
+  rdfs:label "OnRuleApplied"@en ;
+  rdfs:comment "The duty is materialized when the attached rule is satisfied and its effect realizes. Not materialized from satisfied Permit or Deny rules that are only contributors to Indeterminate with shpl:Conflict when shpl:detectConflicts is true."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+shpl:OnRuleViolated a shpl:ObligationTrigger ;
+  rdfs:label "OnRuleViolated"@en ;
+  rdfs:comment "The duty is emitted on a Deny contribution as a breach-response obligation. Not materialized from satisfied Deny rules that are only contributors to Indeterminate with shpl:Conflict when shpl:detectConflicts is true."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+shpl:OnObligationFailed a shpl:ObligationTrigger ;
+  rdfs:label "OnObligationFailed"@en ;
+  rdfs:comment "The duty yields an obligation when the parent obligation on the Decision reaches shpl:ObligationFailed."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+shpl:triggersOn a owl:ObjectProperty ;
+  rdfs:label "triggers on"@en ;
+  rdfs:comment "Required trigger value for a Duty in conformant core documents."@en ;
+  rdfs:domain shpl:Duty ;
+  rdfs:range shpl:ObligationTrigger ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:DutyTiming a owl:Class ;
+  rdfs:label "DutyTiming"@en ;
+  rdfs:comment "Closed value set for when a duty must be satisfied relative to the governed action."@en ;
+  owl:oneOf ( shpl:Precondition shpl:Postcondition ) ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:Precondition a shpl:DutyTiming ;
+  rdfs:label "Precondition"@en ;
+  rdfs:comment "Duty must be satisfied before the governed action proceeds."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+shpl:Postcondition a shpl:DutyTiming ;
+  rdfs:label "Postcondition"@en ;
+  rdfs:comment "Duty must be satisfied after the governed action completes within a deployment-defined window."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+shpl:timing a owl:ObjectProperty ;
+  rdfs:label "timing"@en ;
+  rdfs:comment "Timing marker on a Duty or on an obligation node in a Decision."@en ;
+  rdfs:range shpl:DutyTiming ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:fromRule a owl:ObjectProperty ;
+  rdfs:label "from rule"@en ;
+  rdfs:comment "On an obligation node in a Decision: the rule that produced it."@en ;
+  rdfs:range shpl:Rule ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  rdfs:subPropertyOf prov:wasDerivedFrom ;
+  shpl:stability shpl:Stable .
+
+shpl:state a owl:ObjectProperty ;
+  rdfs:label "state"@en ;
+  rdfs:comment "Lifecycle state of an obligation on a Decision."@en ;
+  rdfs:range shpl:ObligationState ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:ObligationState a owl:Class ;
+  rdfs:label "ObligationState"@en ;
+  rdfs:comment "Closed value set for obligation lifecycle state on a Decision."@en ;
+  owl:oneOf ( shpl:ObligationPending shpl:ObligationInProgress shpl:ObligationSatisfied shpl:ObligationFailed shpl:ObligationCompensated ) ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:ObligationPending     a shpl:ObligationState ; rdfs:label "Pending"@en     ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+shpl:ObligationInProgress  a shpl:ObligationState ; rdfs:label "InProgress"@en ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+shpl:ObligationSatisfied   a shpl:ObligationState ; rdfs:label "Satisfied"@en  ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+shpl:ObligationFailed      a shpl:ObligationState ; rdfs:label "Failed"@en     ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+shpl:ObligationCompensated a shpl:ObligationState ; rdfs:label "Compensated"@en ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+# ============================================================================
+# 5. Access request
+# ============================================================================
+
+shpl:AccessRequest a owl:Class ;
+  rdfs:label "AccessRequest"@en ;
+  rdfs:comment "An access request graph: the agent, target, action, and credentials offered for evaluation."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:agent a owl:ObjectProperty ;
+  rdfs:label "agent"@en ;
+  rdfs:comment "The party attempting the action."@en ;
+  rdfs:domain shpl:AccessRequest ;
+  rdfs:range shpl:Party ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:credential a owl:ObjectProperty ;
+  rdfs:label "credential"@en ;
+  rdfs:comment "Verifiable Credential attached to the access request. Evaluation semantics require deployment-defined verification before triples from this credential may justify a satisfied Permit or a satisfied Deny whose rule condition depends on those triples."@en ;
+  rdfs:domain shpl:AccessRequest ;
+  rdfs:range cred:VerifiableCredential ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:dryRun a owl:DatatypeProperty ;
+  rdfs:label "dry run"@en ;
+  rdfs:comment "When true, the PDP/PEP produces a Decision response without performing side effects."@en ;
+  rdfs:domain shpl:AccessRequest ;
+  rdfs:range xsd:boolean ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:explanationLevel a owl:ObjectProperty ;
+  rdfs:label "explanation level"@en ;
+  rdfs:domain shpl:AccessRequest ;
+  rdfs:range shpl:ExplanationLevel ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:ExplanationLevel a owl:Class ;
+  rdfs:label "ExplanationLevel"@en ;
+  rdfs:comment "Closed value set for requested explanation detail."@en ;
+  owl:oneOf ( shpl:NoExplanation shpl:SummaryExplanation shpl:FullExplanation ) ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:NoExplanation      a shpl:ExplanationLevel ; rdfs:label "NoExplanation"@en      ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+shpl:SummaryExplanation a shpl:ExplanationLevel ; rdfs:label "SummaryExplanation"@en ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+shpl:FullExplanation    a shpl:ExplanationLevel ; rdfs:label "FullExplanation"@en    ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+# ============================================================================
+# 6. Decision response
+# ============================================================================
+
+shpl:Decision a owl:Class ;
+  rdfs:label "Decision"@en ;
+  rdfs:comment "The PDP's response to an access request."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:Explanation a owl:Class ;
+  rdfs:label "Explanation"@en ;
+  rdfs:comment "Optional explanation payload on a Decision. Core defines only loose hooks; richer structure is profile-defined."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:outcome a owl:ObjectProperty ;
+  rdfs:label "outcome"@en ;
+  rdfs:domain shpl:Decision ;
+  rdfs:range shpl:DecisionOutcome ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:DecisionOutcome a owl:Class ;
+  rdfs:label "DecisionOutcome"@en ;
+  rdfs:comment "Closed wire value set for final Decision outcomes."@en ;
+  owl:oneOf ( shpl:Permit shpl:Deny shpl:NotMatched shpl:NotSatisfied shpl:Indeterminate ) ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:Permit        a shpl:RuleEffect, shpl:DecisionOutcome ; rdfs:label "Permit"@en        ; rdfs:comment "As a rule effect: grant when target and action match and the SHACL condition is satisfied. If the condition depends on triples from shpl:credential, evaluation semantics require credential verification before the rule may be classified as satisfied Permit."@en ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+shpl:Deny          a shpl:RuleEffect, shpl:DecisionOutcome ; rdfs:label "Deny"@en          ; rdfs:comment "As a rule effect: refusal when target and action match and the SHACL condition is satisfied. If the condition depends on triples from shpl:credential, evaluation semantics require credential verification before the rule may be classified as satisfied Deny."@en ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+shpl:Obligate      a shpl:RuleEffect                       ; rdfs:label "Obligate"@en      ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+shpl:NotMatched    a shpl:DecisionOutcome                  ; rdfs:label "NotMatched"@en    ; rdfs:comment "No rule matched the request target/action."@en ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+shpl:NotSatisfied  a shpl:DecisionOutcome                  ; rdfs:label "NotSatisfied"@en  ; rdfs:comment "At least one rule matched target/action, but no satisfied Permit or Deny rule decided the request."@en ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+shpl:Indeterminate a shpl:DecisionOutcome                  ; rdfs:label "Indeterminate"@en ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+shpl:reason a owl:ObjectProperty ;
+  rdfs:label "reason"@en ;
+  rdfs:comment "Zero or more SKOS concepts explaining a Decision."@en ;
+  rdfs:domain shpl:Decision ;
+  rdfs:range skos:Concept ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:DecisionReason a skos:ConceptScheme ;
+  rdfs:label "Decision reason scheme"@en ;
+  rdfs:comment "Open SKOS concept scheme for Decision reasons. Profiles MAY add further skos:Concept instances in this scheme."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+shpl:Conflict a skos:Concept ;
+  skos:inScheme shpl:DecisionReason ;
+  skos:prefLabel "Conflict"@en ;
+  skos:definition "Both satisfied Permit and satisfied Deny were present while shpl:detectConflicts was true, so the PDP returned Indeterminate before applying the conflict strategy; OnRuleApplied and OnRuleViolated duties from those conflicting contributors are not materialized."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+shpl:UnsupportedFeature a skos:Concept ;
+  skos:inScheme shpl:DecisionReason ;
+  skos:prefLabel "Unsupported feature"@en ;
+  skos:definition "Document or PEP requires a capability, profile, or spec version the processor cannot honor."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+shpl:HolderBindingFailed a skos:Concept ;
+  skos:inScheme shpl:DecisionReason ;
+  skos:prefLabel "Holder binding failed"@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+shpl:CredentialNotVerified a skos:Concept ;
+  skos:inScheme shpl:DecisionReason ;
+  skos:prefLabel "Credential not verified"@en ;
+  skos:definition "A credential was required for a satisfied Permit or satisfied credential-dependent Deny but verification failed or was incomplete; the PDP did not classify that rule as satisfied, or surfaced Indeterminate with this reason."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+shpl:NodeExpressionFailed a skos:Concept ;
+  skos:inScheme shpl:DecisionReason ;
+  skos:prefLabel "Node expression failed"@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+shpl:CycleDetected a skos:Concept ;
+  skos:inScheme shpl:DecisionReason ;
+  skos:prefLabel "Cycle detected"@en ;
+  skos:definition "Cyclic obligation chain or profile-defined structural cycle."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+shpl:RuleIndeterminate a skos:Concept ;
+  skos:inScheme shpl:DecisionReason ;
+  skos:prefLabel "Rule indeterminate"@en ;
+  skos:definition "An applicable rule could not be evaluated."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> .
+
+shpl:missingFeature a owl:ObjectProperty ;
+  rdfs:label "missing feature"@en ;
+  rdfs:comment "On an unsupported-feature explanation node: the IRI of the missing capability, profile, or spec version."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:appliedRule a owl:ObjectProperty ;
+  rdfs:label "applied rule"@en ;
+  rdfs:domain shpl:Decision ;
+  rdfs:range shpl:Rule ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:explanation a owl:ObjectProperty ;
+  rdfs:label "explanation"@en ;
+  rdfs:comment "Optional structured explanation attached to the Decision when the request's explanation level permits it."@en ;
+  rdfs:domain shpl:Decision ;
+  rdfs:range shpl:Explanation ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:validUntil a owl:DatatypeProperty ;
+  rdfs:label "valid until"@en ;
+  rdfs:domain shpl:Decision ;
+  rdfs:range xsd:dateTime ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:requestRef a owl:ObjectProperty ;
+  rdfs:label "request reference"@en ;
+  rdfs:comment "IRI of the AccessRequest that produced this Decision."@en ;
+  rdfs:domain shpl:Decision ;
+  rdfs:range shpl:AccessRequest ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:perRuleResult       a owl:ObjectProperty ; rdfs:domain shpl:Explanation ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ; shpl:stability shpl:Stable .
+shpl:nodeExpressionTrace a owl:ObjectProperty ; rdfs:domain shpl:Explanation ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ; shpl:stability shpl:Stable .
+shpl:whyNot              a owl:ObjectProperty ; rdfs:domain shpl:Explanation ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ; shpl:stability shpl:Stable .
+
+# ============================================================================
+# 7. Conflict strategies
+# ============================================================================
+
+shpl:ConflictStrategy a owl:Class ;
+  rdfs:label "Conflict strategy"@en ;
+  rdfs:comment "Closed value set for conflict-resolution strategies."@en ;
+  owl:oneOf ( shpl:DenyOverrides shpl:PermitOverrides ) ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:isDeterministic a owl:DatatypeProperty ; rdfs:domain shpl:ConflictStrategy ; rdfs:range xsd:boolean ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ; shpl:stability shpl:Stable .
+shpl:isMonotonic     a owl:DatatypeProperty ; rdfs:domain shpl:ConflictStrategy ; rdfs:range xsd:boolean ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ; shpl:stability shpl:Stable .
+shpl:isIdempotent    a owl:DatatypeProperty ; rdfs:domain shpl:ConflictStrategy ; rdfs:range xsd:boolean ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ; shpl:stability shpl:Stable .
+
+shpl:DenyOverrides a shpl:ConflictStrategy ;
+  rdfs:label "DenyOverrides"@en ;
+  shpl:isDeterministic true ;
+  shpl:isMonotonic true ;
+  shpl:isIdempotent true ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  skos:relatedMatch odrl:prohibit .
+
+shpl:PermitOverrides a shpl:ConflictStrategy ;
+  rdfs:label "PermitOverrides"@en ;
+  shpl:isDeterministic true ;
+  shpl:isMonotonic true ;
+  shpl:isIdempotent true ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  skos:relatedMatch odrl:perm .
+
+# ============================================================================
+# 8. Node-expression hooks
+# ============================================================================
+
+shpl:Hook a owl:Class ;
+  rdfs:label "Hook"@en ;
+  rdfs:comment "A named SHACL node-expression hook evaluated by the PDP."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:PureHook a owl:Class ;
+  rdfs:subClassOf shpl:Hook ;
+  rdfs:label "Pure hook"@en ;
+  rdfs:comment "A deterministic hook with no I/O; same input graph yields same result."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:RequestScopedHook a owl:Class ;
+  rdfs:subClassOf shpl:Hook ;
+  rdfs:label "Request-scoped hook"@en ;
+  rdfs:comment "A hook whose value depends only on the current access request."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:EnvironmentalHook a owl:Class ;
+  rdfs:subClassOf shpl:Hook ;
+  rdfs:label "Environmental hook"@en ;
+  rdfs:comment "A hook whose value depends on PDP state, clocks, counters, or other deployment environment."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:ExternalHook a owl:Class ;
+  rdfs:subClassOf shpl:Hook ;
+  rdfs:label "External hook"@en ;
+  rdfs:comment "A hook whose value depends on network, PIP, or other external service calls."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:freshnessSeconds a owl:DatatypeProperty ;
+  rdfs:label "freshness seconds"@en ;
+  rdfs:domain shpl:Hook ;
+  rdfs:range xsd:nonNegativeInteger ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:currentDateTime a shpl:Hook, shpl:EnvironmentalHook ;
+  rdfs:label "current dateTime"@en ;
+  rdfs:comment "Evaluates to the xsd:dateTime of the evaluation instant."@en ;
+  shpl:freshnessSeconds 1 ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:requestCount a shpl:Hook, shpl:EnvironmentalHook ;
+  rdfs:label "request count"@en ;
+  rdfs:comment "Evaluates to a non-negative integer counting prior evaluations or permits over a deployment-defined window."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:agentLocation a shpl:Hook, shpl:ExternalHook ;
+  rdfs:label "agent location"@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Experimental .
+
+shpl:credentialClaim a shpl:Hook, shpl:PureHook ;
+  rdfs:label "credential claim"@en ;
+  rdfs:comment "Evaluates a SHACL property path against the credential subject of each attached credential and yields the union of values."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:purposeOfUse a shpl:Hook, shpl:RequestScopedHook ;
+  rdfs:label "purpose of use"@en ;
+  rdfs:comment "Evaluates to the declared purpose IRI for this request."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:resourceOwner a shpl:Hook, shpl:ExternalHook ;
+  rdfs:label "resource owner"@en ;
+  rdfs:comment "Evaluates to the owner Party IRI of the request's target. The deployment defines the source relation."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Experimental .
+
+# ============================================================================
+# 9. Profiles, capabilities, versioning
+# ============================================================================
+
+shpl:Profile a owl:Class ;
+  rdfs:label "Profile"@en ;
+  rdfs:comment "Domain extension profile declaring capabilities, shapes, or vocabulary commitments beyond core SPL."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:ExecutionProfile a owl:Class ;
+  rdfs:label "Execution profile"@en ;
+  rdfs:comment "Closed value set for SHACL execution features in use."@en ;
+  owl:oneOf ( shpl:Core shpl:Full ) ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:Core a shpl:ExecutionProfile ;
+  rdfs:label "SPL-Core"@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:Full a shpl:ExecutionProfile ;
+  rdfs:label "SPL-Full"@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:profileTitle              a owl:DatatypeProperty ; rdfs:domain shpl:Profile ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ; shpl:stability shpl:Stable .
+shpl:profileVersion            a owl:DatatypeProperty ; rdfs:domain shpl:Profile ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ; shpl:stability shpl:Stable .
+shpl:profileVersionRequired    a owl:DatatypeProperty ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ; shpl:stability shpl:Stable .
+shpl:appliesToExecutionProfile a owl:ObjectProperty   ; rdfs:domain shpl:Profile ; rdfs:range shpl:ExecutionProfile ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ; shpl:stability shpl:Stable .
+shpl:declaresCapability        a owl:ObjectProperty   ; rdfs:domain shpl:Profile ; rdfs:range shpl:Capability ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ; shpl:stability shpl:Stable .
+shpl:profileShapesGraph        a owl:ObjectProperty   ; rdfs:domain shpl:Profile ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ; shpl:stability shpl:Stable .
+
+shpl:Capability a owl:Class ;
+  rdfs:label "Capability"@en ;
+  rdfs:comment "Optional semantic feature a processor can advertise and a document can require."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:HookCapability a owl:Class ;
+  rdfs:subClassOf shpl:Capability ;
+  rdfs:label "Hook capability"@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:EvaluationCapability a owl:Class ;
+  rdfs:subClassOf shpl:Capability ;
+  rdfs:label "Evaluation capability"@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:ObligationCapability a owl:Class ;
+  rdfs:subClassOf shpl:Capability ;
+  rdfs:label "Obligation capability"@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:ProfileCapability a owl:Class ;
+  rdfs:subClassOf shpl:Capability ;
+  rdfs:label "Profile capability"@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:ActionReasoningCapability a owl:Class ;
+  rdfs:subClassOf shpl:Capability ;
+  rdfs:label "Action reasoning capability"@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:CapabilityDescriptor a owl:Class ;
+  rdfs:label "CapabilityDescriptor"@en ;
+  rdfs:comment "Machine-readable descriptor of what a PDP deployment supports."@en ;
+  rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ;
+  shpl:stability shpl:Stable .
+
+shpl:processorVersion         a owl:DatatypeProperty ; rdfs:domain shpl:CapabilityDescriptor ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ; shpl:stability shpl:Stable .
+shpl:supportsExecutionProfile a owl:ObjectProperty   ; rdfs:domain shpl:CapabilityDescriptor ; rdfs:range shpl:ExecutionProfile ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ; shpl:stability shpl:Stable .
+shpl:supportedCapability      a owl:ObjectProperty   ; rdfs:domain shpl:CapabilityDescriptor ; rdfs:range shpl:Capability ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ; shpl:stability shpl:Stable .
+shpl:supportedProfile         a owl:ObjectProperty   ; rdfs:domain shpl:CapabilityDescriptor ; rdfs:range shpl:Profile ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ; shpl:stability shpl:Stable .
+shpl:supportedSpecVersion     a owl:ObjectProperty   ; rdfs:domain shpl:CapabilityDescriptor ; rdfs:isDefinedBy <https://w3id.org/shacl-policy-language> ; shpl:stability shpl:Stable .
+
+# ----------------------------------------------------------------------------
+# Alignment: Dublin Core and PROV-O
+# ----------------------------------------------------------------------------
+
+shpl:specVersion rdfs:subPropertyOf dct:conformsTo .
+shpl:conformsToProfile rdfs:subPropertyOf dct:conformsTo .

@@ -1,0 +1,12 @@
+﻿@prefix shpl: <https://w3id.org/shacl-policy-language#> .
+@prefix ex:   <http://example.com/ns#> .
+
+<>
+  a shpl:Policy ;
+  shpl:profile shpl:Core ;
+  shpl:specVersion <https://w3id.org/shacl-policy-language/spec/v0.3.0> .
+
+# INTENTIONALLY MALFORMED: missing shpl:action
+ex:P a shpl:Rule ;
+  shpl:effect shpl:Permit ;
+  shpl:target ex:Doc .

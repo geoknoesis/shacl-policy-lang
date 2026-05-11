@@ -1,0 +1,126 @@
+﻿{
+  "@context": {
+    "@version": 1.1,
+    "shpl": "https://w3id.org/shacl-policy-language#",
+    "sh": "http://www.w3.org/ns/shacl#",
+    "cred": "https://www.w3.org/2018/credentials#",
+    "odrl": "http://www.w3.org/ns/odrl/2/",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+
+    "id": "@id",
+    "type": "@type",
+
+    "Policy": "shpl:Policy",
+    "Rule": "shpl:Rule",
+    "RuleEffect": "shpl:RuleEffect",
+    "Duty": "shpl:Duty",
+    "Obligation": "shpl:Obligation",
+    "AccessRequest": "shpl:AccessRequest",
+    "Decision": "shpl:Decision",
+    "Explanation": "shpl:Explanation",
+    "Party": "shpl:Party",
+    "PartyCollection": "shpl:PartyCollection",
+    "Asset": "shpl:Asset",
+    "AssetCollection": "shpl:AssetCollection",
+    "Action": "shpl:Action",
+    "Profile": "shpl:Profile",
+    "ExecutionProfile": "shpl:ExecutionProfile",
+    "ConflictStrategy": "shpl:ConflictStrategy",
+    "Capability": "shpl:Capability",
+    "HookCapability": "shpl:HookCapability",
+    "EvaluationCapability": "shpl:EvaluationCapability",
+    "ObligationCapability": "shpl:ObligationCapability",
+    "ProfileCapability": "shpl:ProfileCapability",
+    "ActionReasoningCapability": "shpl:ActionReasoningCapability",
+    "CapabilityDescriptor": "shpl:CapabilityDescriptor",
+    "Hook": "shpl:Hook",
+    "PureHook": "shpl:PureHook",
+    "RequestScopedHook": "shpl:RequestScopedHook",
+    "EnvironmentalHook": "shpl:EnvironmentalHook",
+    "ExternalHook": "shpl:ExternalHook",
+
+    "profile": {"@id": "shpl:profile", "@type": "@id"},
+    "conformsToProfile": {"@id": "shpl:conformsToProfile", "@type": "@id"},
+    "specVersion": {"@id": "shpl:specVersion", "@type": "@id"},
+    "requiredCapability": {"@id": "shpl:requiredCapability", "@type": "@id", "@container": "@set"},
+    "conflictStrategy": {"@id": "shpl:conflictStrategy", "@type": "@id"},
+    "detectConflicts": {"@id": "shpl:detectConflicts", "@type": "xsd:boolean"},
+    "usesActionVocabulary": {"@id": "shpl:usesActionVocabulary", "@type": "@id", "@container": "@set"},
+
+    "effect": {"@id": "shpl:effect", "@type": "@id"},
+    "target": {"@id": "shpl:target", "@type": "@id", "@container": "@set"},
+    "action": {"@id": "shpl:action", "@type": "@id"},
+    "impliedAction": {"@id": "shpl:impliedAction", "@type": "@id", "@container": "@set"},
+    "condition": {"@id": "shpl:condition", "@type": "@id"},
+    "duty": {"@id": "shpl:duty", "@type": "@id", "@container": "@set"},
+    "obligation": {"@id": "shpl:obligation", "@type": "@id", "@container": "@set"},
+    "triggersOn": {"@id": "shpl:triggersOn", "@type": "@id"},
+
+    "assigner": {"@id": "shpl:assigner", "@type": "@id"},
+    "assignee": {"@id": "shpl:assignee", "@type": "@id"},
+    "partOf": {"@id": "shpl:partOf", "@type": "@id"},
+
+    "timing": {"@id": "shpl:timing", "@type": "@id"},
+    "fromRule": {"@id": "shpl:fromRule", "@type": "@id"},
+    "state": {"@id": "shpl:state", "@type": "@id"},
+
+    "agent": {"@id": "shpl:agent", "@type": "@id"},
+    "credential": {"@id": "shpl:credential", "@type": "@id", "@container": "@set"},
+    "dryRun": {"@id": "shpl:dryRun", "@type": "xsd:boolean"},
+    "explanationLevel": {"@id": "shpl:explanationLevel", "@type": "@id"},
+
+    "outcome": {"@id": "shpl:outcome", "@type": "@id"},
+    "reason": {"@id": "shpl:reason", "@type": "@id", "@container": "@set"},
+    "appliedRule": {"@id": "shpl:appliedRule", "@type": "@id", "@container": "@set"},
+    "explanation": {"@id": "shpl:explanation", "@type": "@id"},
+    "validUntil": {"@id": "shpl:validUntil", "@type": "xsd:dateTime"},
+    "requestRef": {"@id": "shpl:requestRef", "@type": "@id"},
+
+    "missingFeature": {"@id": "shpl:missingFeature", "@type": "@id"},
+
+    "perRuleResult": {"@id": "shpl:perRuleResult", "@type": "@id", "@container": "@set"},
+    "nodeExpressionTrace": {"@id": "shpl:nodeExpressionTrace", "@type": "@id", "@container": "@set"},
+    "whyNot": {"@id": "shpl:whyNot", "@type": "@id", "@container": "@set"},
+
+    "supportsExecutionProfile": {"@id": "shpl:supportsExecutionProfile", "@type": "@id", "@container": "@set"},
+    "supportedCapability": {"@id": "shpl:supportedCapability", "@type": "@id", "@container": "@set"},
+    "supportedProfile": {"@id": "shpl:supportedProfile", "@type": "@id", "@container": "@set"},
+    "supportedSpecVersion": {"@id": "shpl:supportedSpecVersion", "@type": "@id", "@container": "@set"},
+    "stability": {"@id": "shpl:stability", "@type": "@id"},
+
+    "freshnessSeconds": {"@id": "shpl:freshnessSeconds", "@type": "xsd:nonNegativeInteger"},
+
+    "Permit": "shpl:Permit",
+    "Deny": "shpl:Deny",
+    "Obligate": "shpl:Obligate",
+    "NotMatched": "shpl:NotMatched",
+    "NotSatisfied": "shpl:NotSatisfied",
+    "Indeterminate": "shpl:Indeterminate",
+
+    "OnRuleApplied": "shpl:OnRuleApplied",
+    "OnRuleViolated": "shpl:OnRuleViolated",
+    "OnObligationFailed": "shpl:OnObligationFailed",
+
+    "Precondition": "shpl:Precondition",
+    "Postcondition": "shpl:Postcondition",
+
+    "ObligationPending": "shpl:ObligationPending",
+    "ObligationInProgress": "shpl:ObligationInProgress",
+    "ObligationSatisfied": "shpl:ObligationSatisfied",
+    "ObligationFailed": "shpl:ObligationFailed",
+    "ObligationCompensated": "shpl:ObligationCompensated",
+
+    "DenyOverrides": "shpl:DenyOverrides",
+    "PermitOverrides": "shpl:PermitOverrides",
+
+    "Core": "shpl:Core",
+    "Full": "shpl:Full",
+
+    "NoExplanation": "shpl:NoExplanation",
+    "SummaryExplanation": "shpl:SummaryExplanation",
+    "FullExplanation": "shpl:FullExplanation"
+  }
+}

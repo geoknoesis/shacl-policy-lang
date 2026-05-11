@@ -1,0 +1,11 @@
+﻿@prefix shpl: <https://w3id.org/shacl-policy-language#> .
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+@prefix ex:   <http://example.com/ns#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+ex:Doc1 a ex:Document .
+
+ex:Request_Doc1 a shpl:AccessRequest ;
+  shpl:agent <did:example:alice> ;
+  shpl:action odrl:read ;
+  shpl:target ex:Doc1  .

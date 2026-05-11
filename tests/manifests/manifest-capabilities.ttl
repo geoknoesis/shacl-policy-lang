@@ -1,0 +1,44 @@
+﻿@prefix shpl:    <https://w3id.org/shacl-policy-language#> .
+@prefix shpltst: <https://w3id.org/shacl-policy-language/test-suite#> .
+@prefix mf:      <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ex:      <http://example.com/ns#> .
+
+<>
+  a shpltst:TestManifest ;
+  rdfs:label "SPL conformance test suite - capabilities and profiles" ;
+  mf:entries (
+    <#test-required-capability-missing>
+    <#test-spec-version-unsupported>
+    <#test-profile-conformance>
+  ) .
+
+<#test-required-capability-missing>
+  a shpltst:TestCase ;
+  rdfs:label "Document requiring an unsupported capability yields Indeterminate" ;
+  shpltst:category "capabilities" ;
+  shpltst:requiredProfile shpl:Core ;
+  shpltst:policyGraph <../policies/policy-requires-unsupported-capability.ttl> ;
+  shpltst:requestGraph <../requests/request-alice-read-doc.ttl> ;
+  shpltst:expectedOutcome shpl:Indeterminate ;
+  shpltst:expectedReason shpl:UnsupportedFeature .
+
+<#test-spec-version-unsupported>
+  a shpltst:TestCase ;
+  rdfs:label "Document declaring an unsupported spec version is rejected" ;
+  shpltst:category "capabilities" ;
+  shpltst:requiredProfile shpl:Core ;
+  shpltst:policyGraph <../policies/policy-spec-version-unsupported.ttl> ;
+  shpltst:requestGraph <../requests/request-alice-read-doc.ttl> ;
+  shpltst:expectedOutcome shpl:Indeterminate ;
+  shpltst:expectedReason shpl:UnsupportedFeature .
+
+<#test-profile-conformance>
+  a shpltst:TestCase ;
+  rdfs:label "Document with domain profile and obligation payload evaluates" ;
+  shpltst:category "profiles" ;
+  shpltst:requiredProfile shpl:Core ;
+  shpltst:policyGraph <../policies/policy-dataspace-profile.ttl> ;
+  shpltst:requestGraph <../requests/request-alice-read-doc.ttl> ;
+  shpltst:expectedOutcome shpl:Permit ;
+  shpltst:expectedObligationPayloadPredicate ex:notify .

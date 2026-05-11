@@ -1,0 +1,7 @@
+﻿@prefix shpl: <https://w3id.org/shacl-policy-language#> .
+@prefix ex:   <http://example.com/ns#> .
+
+ex:Decision1 a shpl:Decision ;
+  shpl:outcome shpl:Permit ;
+  shpl:appliedRule ex:AdultAccessRule ;
+  shpl:requestRef ex:Request1 .

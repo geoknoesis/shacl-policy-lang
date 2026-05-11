@@ -1,0 +1,33 @@
+﻿@prefix shpl: <https://w3id.org/shacl-policy-language#> .
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix ex:   <http://example.com/ns#> .
+
+<>
+  a shpl:Policy ;
+  shpl:profile shpl:Core ;
+  shpl:specVersion <https://w3id.org/shacl-policy-language/spec/v0.3.0> ;
+  shpl:conformsToProfile ex:MinimalProfile .
+
+ex:MinimalProfile a shpl:Profile ;
+  shpl:profileVersion "1.0.0" ;
+  shpl:appliesToExecutionProfile shpl:Core ;
+  shpl:declaresCapability ex:ExtraCap .
+
+ex:ExtraCap a shpl:ObligationCapability .
+
+ex:ProfileRule a shpl:Rule ;
+  shpl:effect shpl:Permit ;
+  shpl:target ex:Doc ;
+  shpl:action odrl:read ;
+  shpl:duty [
+    a shpl:Duty ;
+    shpl:triggersOn shpl:OnRuleApplied ;
+    shpl:timing shpl:Precondition ;
+    sh:rule [
+      a sh:TripleRule ;
+      sh:subject sh:this ;
+      sh:predicate ex:notify ;
+      sh:object ex:NotifyEndpoint
+    ]
+  ] .

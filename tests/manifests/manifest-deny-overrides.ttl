@@ -1,0 +1,31 @@
+﻿@prefix shpl:    <https://w3id.org/shacl-policy-language#> .
+@prefix shpltst: <https://w3id.org/shacl-policy-language/test-suite#> .
+@prefix mf:      <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+
+<>
+  a shpltst:TestManifest ;
+  rdfs:label "SPL conformance test suite - deny-overrides category" ;
+  mf:entries (
+    <#test-deny-overrides-allow>
+    <#test-permit-overrides-allow>
+  ) .
+
+<#test-deny-overrides-allow>
+  a shpltst:TestCase ;
+  rdfs:label "Deny rule overrides Permit rule under deny-overrides (default)" ;
+  shpltst:category "deny-overrides" ;
+  shpltst:requiredProfile shpl:Core ;
+  shpltst:policyGraph <../policies/policy-allow-read-adult-and-deny-under13.ttl> ;
+  shpltst:requestGraph <../requests/request-bob-age-10.ttl> ;
+  shpltst:expectedOutcome shpl:Deny .
+
+<#test-permit-overrides-allow>
+  a shpltst:TestCase ;
+  rdfs:label "PermitOverrides yields Permit when an allow holds despite a satisfied deny" ;
+  shpltst:category "conflict-strategies" ;
+  shpltst:requiredProfile shpl:Core ;
+  shpltst:requiredCapability shpl:PermitOverrides ;
+  shpltst:policyGraph <../policies/policy-permit-overrides-set.ttl> ;
+  shpltst:requestGraph <../requests/request-bob-age-10.ttl> ;
+  shpltst:expectedOutcome shpl:Permit .

@@ -1,664 +1,795 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SHACL Policy Language</title>
-  <script class="remove" src="https://www.w3.org/Tools/respec/respec-w3c" defer></script>
-  <script class="remove" src="respec-config.js"></script>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="SHACL Policy Language (SPL) v0.3: a SHACL 1.2 profile for RDF access-control rules, Verifiable Credentials, and portable authorization Decision graphs." />
+<link rel="canonical" href="https://geoknoesis.github.io/shacl-policy-lang/index.html" />
+<title>SPL v0.3 — SHACL Policy Language</title>
+<script class="remove" src="https://www.w3.org/Tools/respec/respec-w3c" defer></script>
+<script class="remove" src="respec-config.js"></script>
+<style>
+table { border-collapse: collapse; margin: 0.5em 0; }
+th, td { border: 1px solid #ccc; padding: 4px 8px; text-align: left; vertical-align: top; }
+th { background: #f0f0f0; }
+.req { background: #f6f8fa; border-left: 3px solid #0366d6; padding: 6px 10px; margin: 6px 0; }
+pre { overflow-x: auto; }
+</style>
+</head>
+<body>
+<section id="abstract">
+<h2>Abstract</h2>
+<p>
+SHACL Policy Language (SPL) v0.3 defines a <strong>profile of W3C SHACL 1.2</strong> for attribute-based access control over RDF <strong>access-request</strong> graphs, including Verifiable Credentials as evidence. A Policy Decision Point evaluates <a data-lt="SPL policy">SPL policies</a> and returns a normative <strong>Decision graph</strong> (<code>shpl:Decision</code>) capturing <code>shpl:outcome</code>, reasons, optional obligations, and a request reference. Deployment roles align with [[XACML30]]; attribute categories align with [[NIST-SP-800-162]].
+</p>
+<p>
+All rule conditions are expressed as SHACL <code>sh:NodeShape</code> values of <code>shpl:condition</code> (no parallel constraint language). <a>SPL-Core</a> is limited to [[SHACL12-CORE]], [[SHACL12-RULES]], and [[SHACL12-NODE]]; <a>SPL-Full</a> additionally allows [[SHACL12-SPARQL]]. SPL defines a compact <code>shpl:</code> vocabulary for effects, targets, actions, duties, obligations, conflict combination, hooks, and capability discovery; action IRIs SHOULD reuse [[ODRL]] where practical. Transport, signing, negotiation, and policy merge are out of scope for core and are deferred to <a href="#companion-profiles">Companion profiles</a>.
+</p>
+</section>
 
-  </head>
-  <body>
-    <section id="abstract">
-      <h2>Abstract</h2>
-      <p>
-        SHACL Policy Language is a proposal for a shapes-based access control policy language that leverages W3C's Shapes Constraint Language (SHACL) to express fine-grained access conditions for protected resources using attributes from Verifiable Credentials. This specification defines a vocabulary and model for writing access control rules as SHACL shapes, enabling attribute-based access control (ABAC) in decentralized systems. By using SHACL's well-defined validation semantics [[SHACL]], SHACL Policy Language allows policy authors to specify complex constraints (e.g., "the user must possess a credential with attribute X and value Y") in an interoperable, extensible manner. The approach is informed by existing W3C standards and community efforts - including ODRL-based policy profiles [[OAC]] [[ODRL-VC]] and emphasizes integration with the W3C Verifiable Credentials data model [[VC-DATA-MODEL]] to support real-world use cases. The goal is to provide a W3C-style access control specification that is easy to adopt, maintain, and integrate across diverse platforms by reusing familiar SHACL validation tools and patterns.
-      </p>
-    </section>
+<section id="sotd">
+<h2>Status of This Document</h2>
+<p>This document is an editor's draft. Vocabulary terms resolve to <code>https://w3id.org/shacl-policy-language#</code>. The <strong>normative spec version Internationalized Resource Identifier (IRI)</strong> remains <code>https://w3id.org/shacl-policy-language/spec/v0.3.0</code> until a Community Group (CG) or Working Group (WG) action publishes a newer versioned IRI; substantive revisions to this editor's draft are tracked by publication date and repository history, not by changing that IRI.</p>
+<p>Feedback and issues are welcome on the <a href="https://github.com/geoknoesis/shacl-policy-lang/issues">repository issue tracker</a>. Implementations are encouraged to publish <code>shpl:CapabilityDescriptor</code> resources and to open issues when observable PDP behavior diverges from <a href="#evaluation">Evaluation semantics</a> or <a href="#hooks">Node expression hooks</a> so the specification can be clarified.</p>
+<p><strong>Upstream SHACL alignment.</strong> Normative references to SHACL 1.2 ([[SHACL12-CORE]], [[SHACL12-RULES]], [[SHACL12-NODE]], and optionally [[SHACL12-SPARQL]]) use the editor’s draft locations given in this document’s bibliography (<code>respec-config.js</code> <code>localBiblio</code>). When W3C publishes Recommendation-track specifications whose semantics are compatible for the constructs SPL uses, implementations SHOULD prefer those stable URIs for citations and conformance testing. SPL <code>shpl:specVersion</code> pins the SPL specification version; it does not pin a dated SHACL Working Draft snapshot.</p>
+<p>ODRL actions are reused by reference [[ODRL]]. Detailed ODRL mapping is non-normative (<a href="#appendix-odrl">Appendix A</a>). The PDP/PEP/PIP/PAP model and decision vocabulary are aligned with [[XACML30]] in <a href="#conceptual-alignment">Conceptual alignment</a>. Rationale and scope are summarized in <a href="#goals">Goals and background</a>.</p>
+<p><strong>W3C status.</strong> This document is <em>not</em> a W3C Technical Report. It has not been reviewed or endorsed by the World Wide Web Consortium; publication here or on GitHub Pages does not assign rights under the <a href="https://www.w3.org/policies/patent-policy/">W3C Patent Policy</a>. If SPL is adopted on the W3C Recommendation track in the future, a separate charter, patent disclosures, and wide review would apply.</p>
+<p><strong>Community specification.</strong> SPL is published as an open specification so implementations can interoperate. The editors treat clarity, testable rules, and alignment with [[SHACL12-CORE]] as prerequisites for any eventual formal standardization pathway (for example W3C Community Group Report, standards body PAS, or de facto industry adoption).</p>
+</section>
 
-    <section id="sotd">
-      <h2>Status of This Document</h2>
-      <p>
-        This document is a draft specification for discussion within the W3C community (e.g., a Credentials Community Group or Working Group). It has no official standing yet and does not represent an established standard. Feedback and contributions are welcome. The specification may change based on community input and further evaluation. This document is prepared in the style of a W3C specification to facilitate review.
-      </p>
-      <p>
-        This draft incorporates insights from existing policy frameworks, including the Open Digital Rights Language (ODRL) (a W3C Recommendation for policy expression) and research prototypes like [[SHACL-ACL]]. The decision to pursue a SHACL-based vocabulary (as opposed to an ODRL profile) reflects the analysis of interoperability, community adoption, and extensibility presented in the Introduction.
-      </p>
-    </section>
+<section id="introduction">
+<h2>Introduction</h2>
+<p class="note" title="Reading guide">Authors usually start with <a href="#spl-in-five">SPL in five minutes</a> and <a href="#examples">Examples</a>. Implementers usually validate shapes from <a href="#appendix-spl-spl">Appendix B</a>, then implement <a href="#evaluation">Evaluation semantics</a>, <a href="#hooks">Node expression hooks</a>, and <a href="#holder-binding">Holder binding</a>, checking claims against <a href="#conformance-classes">Conformance classes</a>.</p>
 
-    <section id="introduction">
-      <h2>Introduction</h2>
-        <p>
-            Access control policies in decentralized systems often need to make authorization decisions based on attributes or claims - for example, allowing access only to users over a certain age, or only to members of a given organization. With the advent of Verifiable Credentials (VCs) as a standard way to express and cryptographically prove attributes about an entity, there is a growing need for a policy language that can consume these credentials and enforce fine-grained, attribute-based access rules. This specification addresses that need by defining SHACL Policy Language, a policy language that uses SHACL shapes to specify the conditions under which access is granted or denied.
-        </p>
+<section id="goals" class="informative">
+<h3>Goals and background</h3>
 
-        <section id="background">
-            <h3>Background and Motivation</h3>
-            <h4>W3C Practices & Existing Approaches</h4>
-            <p>
-                A natural question is whether to build on an existing W3C policy framework (such as ODRL, the Open Digital Rights Language) or to create a new vocabulary tailored to this use case. ODRL is a W3C Recommendation designed for expressing rules about content use and licensing, and it has been repurposed for access control scenarios in some communities. For example, the Solid Project and others have explored an ODRL Profile for Access Control (OAC) to express permissions and prohibitions on data in decentralized data pods [[OAC]]. Additionally, the Gaia-X initiative has developed an ODRL profile for attribute-based access control using Verifiable Credential claims [[ODRL-VC]], demonstrating that ODRL can be extended to reference VC attributes in policy constraints. These efforts validate the feasibility of an ODRL-based solution and align with W3C's general practice of reusing and profiling existing standards for new domains.
-            </p>
-            <p>
-                However, while ODRL provides a rich information model (policies, rules, duties, constraints, etc.), it does not natively define an execution semantics for evaluating access control decisions. In other words, ODRL policies describe what is permitted or prohibited, but the standard leaves it to implementations to determine how to enforce those rules. Projects using ODRL for access control have had to create custom evaluation logic or supplemental frameworks (for example, using SHACL or hard-coded checks) to decide if a given request satisfies the policy. This can introduce complexity and reduce interoperability, as different implementations might handle policy evaluation differently. Moreover, adding new kinds of constraints (e.g., checking the content of a verifiable credential) may require defining new ODRL vocabulary terms ("left operands") and custom processing, raising questions of maintainability and extensibility.
-            </p>
+<section id="goals-problems">
+<h4>Problems addressed</h4>
+<p>Organizations increasingly govern access with <strong>semantic data</strong> (RDF graphs, catalogs, knowledge bases) and <strong>Verifiable Credentials</strong> as evidence. That raises a set of practical problems SPL is designed to solve:</p>
+<ul>
+<li><strong>Same stack for policy and data.</strong> When policies and resources live in RDF, ad hoc policy formats force extra bridges, parsers, and duplicated attribute models. SPL keeps policy, requests, and decisions as RDF so one graph stack can be stored, queried, versioned, and signed consistently.</li>
+<li><strong>One constraint language.</strong> Credential and request checks (age, role, purpose, graph shape) are fundamentally <em>validation</em> problems. Inventing a second constraint dialect for policy duplicates tooling and skills. SPL uses <strong>SHACL 1.2 only</strong> under <code>shpl:condition</code>, so the same SHACL engines and test patterns apply to policy as to data [[SHACL12-CORE]].</li>
+<li><strong>Portable decisions.</strong> Enforcement, audit, and federation need a stable, machine-readable <strong>authorization decision</strong> (permit or deny, why, and what obligations follow). SPL standardizes a <code>shpl:Decision</code> graph aligned with common PDP/PEP separation [[XACML30]].</li>
+<li><strong>Interop with existing policy concepts.</strong> ODRL already defines permissions, prohibitions, duties, assets, and actions [[ODRL]]. SPL maps those ideas onto SHACL-evaluated rules without replacing ODRL negotiation or legal prose. Attribute categories follow ABAC practice [[NIST-SP-800-162]].</li>
+</ul>
+</section>
 
-            <h4>SHACL-Based Approach</h4>
-            <p>
-                SHACL (Shapes Constraint Language) is a W3C Recommendation widely adopted for validating RDF data against a set of conditions (integrity constraints) [[SHACL]]. The key insight behind SHACL Policy Language is that access control rules can be viewed as data integrity constraints on a combined graph of "contextual information" (such as user credentials, resource attributes, and environment data). If all the constraints are satisfied, the access request is authorized; if any constraint is violated, access is denied. This approach was notably demonstrated by SHACL-ACL (SHACL Access Control Lists), which uses SHACL shapes to enforce graph-based access rules [[SHACL-ACL]]. SHACL provides a clear execution model: a shape either validates (passes) or violates (fails) given a data graph, based on formally-defined semantics. This well-defined evaluation mechanism is a strong advantage for using SHACL in policy evaluation. In fact, researchers have argued it is "natural to specify [access policies] in SHACL; the semantics of SHACL validation are well-defined". SHACL's extensibility (via new shapes, SPARQL-based constraints, etc.) also allows incorporating external or dynamic data if needed, which is important in real-world scenarios (e.g., checking an attribute from an external API or a real-time context like time of day).
-            </p>
+<section id="goals-rationale">
+<h4>Design rationale</h4>
+<p>SPL is intentionally a <strong>thin profile</strong>: a compact <code>shpl:</code> vocabulary for what SHACL does not name by itself (effects, target/action applicability, combining multiple rules, duties, obligation payloads, negative outcomes, hooks, and processor capabilities). Everything expressible as a condition on the request stays in SHACL. Wire formats, offer/agreement negotiation, and merge semantics stay in <a href="#companion-profiles">companion profiles</a> so the core stays testable and implementable in one place.</p>
+</section>
 
-            <h4>Decision (Profile ODRL vs. Standalone)</h4>
-            <p>
-                After evaluating these considerations - W3C practices, community adoption, interoperability, maintainability, and extensibility - this specification takes the approach of defining a standalone SHACL-based vocabulary for access control policies (nicknamed "SHACL Policy Language"), rather than treating it as an ODRL profile. The rationale for this choice includes:
-            </p>
-            <ul>
-                <li><strong>Interoperability & Tooling:</strong> SHACL Policy Language leverages existing SHACL validation engines, which are widely available in RDF ecosystems (many triple stores and libraries support SHACL). This means policy evaluation can be integrated with minimal new code: essentially, policies are SHACL shapes evaluated on data graphs containing credentials and context. In contrast, an ODRL-based approach would require either extending an ODRL engine or custom-coding the evaluation of new constraint types (e.g., VC-specific constraints), since ODRL's processing model for such constraints is not standardized. By aligning with SHACL, we gain immediate interoperability with standard tooling.</li>
-                <li><strong>Community Familiarity and Adoption:</strong> The Semantic Web community is already familiar with SHACL for data validation. Reusing SHACL for policies means a lower learning curve for developers and researchers who work with RDF graphs. In contrast, ODRL - while standardized - represents an additional conceptual model (policies, rules, duties) that developers must learn, and its usage for access control is still emerging (in projects like Solid and Gaia-X). SHACL Policy Language focuses on a simpler model (essentially, policies as shapes) which may encourage adoption, especially in communities already using SHACL (e.g., for validating credential schemas or knowledge graph integrity).</li>
-                <li><strong>Maintainability:</strong> The SHACL Policy Language vocabulary defined here is relatively small and focused. It defines just the necessary classes and properties to represent policies and relies on SHACL's semantics for evaluation. This makes it easier to maintain and evolve within a focused community group. While ODRL is mature and maintained by a broader community, creating an ODRL profile for every new domain can introduce overhead; the profile must track the base ODRL model and potentially wait for ODRL updates for new features. A standalone SHACL-based spec can evolve independently as needs arise, while still coexisting with ODRL (indeed, nothing prevents mapping or translating SHACL Policies to ODRL expressions in the future if needed for interoperability).</li>
-                <li><strong>Extensibility:</strong> SHACL's constraint model is highly extensible new conditions can be expressed simply by writing new shapes or using SHACL-SPARQL for custom logic. For example, if a future use case needs to check a complex condition involving multiple credentials or external data, one can craft a SHACL shape to do so (potentially using SPARQL within SHACL) without needing to introduce new vocabulary terms at the policy level. ODRL, on the other hand, typically requires new constraint terms (leftOperands) or profile-specific extensions to handle novel conditions, which can fragment the ecosystem if different profiles define overlapping concepts differently. By building on a general-purpose constraint language, SHACL Policy Language can accommodate a wide range of conditions under a single framework. As demonstrated by [[SHACL-ACL]], even data from heterogeneous sources can be incorporated by mapping them into RDF for SHACL to consume.</li>
-                <li><strong>Alignment with Verifiable Credentials:</strong> Since VCs are often represented (or can be represented) as JSON-LD, they already have a well-defined RDF mapping (the W3C VC Data Model defines an RDF context for credentials). SHACL shapes can naturally navigate and test the content of these credential graphs. This alignment makes a SHACL-based approach particularly apt for VC-driven policies. (By contrast, an ODRL profile would need to introduce a way to reference credential claims, as the Gaia-X profile does with custom "ovc:" vocabulary, effectively embedding JSONPath or similar references to VC fields in ODRL constraints. That approach is workable but adds a layer of indirection and custom parsing logic that SHACL can avoid by directly operating on the RDF form of credentials.)</li>
-            </ul>
-            <p>
-                In summary, SHACL Policy Language is chosen as a standalone SHACL-based vocabulary for specifying access control rules. This choice is made to maximize clarity of semantics, ease of implementation, and alignment with existing technologies. It does not preclude future interoperability with ODRL; indeed, one could envision a complementary ODRL profile or a mapping such that SHACL Policies could be translated to an ODRL expression for compatibility. However, the focus of this document is defining SHACL Policy Language on its own terms as a candidate solution for the community.
-            </p>
-        </section>
+<section id="goals-roadmap">
+<h4>How to read this document</h4>
+<ol>
+<li><a href="#goals">Goals and background</a> (this section) &mdash; motivation and scope.</li>
+<li><a href="#spl-in-five">SPL in five minutes</a> &mdash; minimal Turtle example of policy, request, and decision.</li>
+<li><a href="#intro-shacl">Relationship to SHACL 1.2</a> and <a href="#intro-odrl">Relationship to ODRL</a> &mdash; boundaries of reuse.</li>
+<li><a href="#companion-profiles">Companion profiles</a>, <a href="#pattern-reuse">Vocabulary reuse</a>, and <a href="#naming-hints">Naming hints</a> &mdash; what is intentionally not in core, reuse patterns, and plain-language shortcuts.</li>
+<li><a href="#conceptual-alignment">Conceptual alignment</a> &mdash; mapping to XACML roles and ABAC attributes (informative).</li>
+<li><a href="#terminology">Terminology</a> onward &mdash; normative definitions, conformance (including <a href="#conformance-classes">Conformance classes</a>), evaluation, and appendices.</li>
+</ol>
+</section>
+</section>
 
-        <section id="overview">
-            <h3>Overview of this Specification</h3>
-            <p>The remainder of this specification is organized as follows:</p>
-            <ul>
-                <li><strong>Use Cases:</strong> Describes typical scenarios that motivate SHACL Policy Language, illustrating the kinds of access rules and credential usages that need to be supported.</li>
-                <li><strong>Vocabulary Overview:</strong> Introduces the core concepts (Policy, conditions, actions, etc.) and how they relate at a high level.</li>
-                <li><strong>SHACL Policy Language Model (Normative):</strong> Provides the formal definition of the SHACL Policy Language vocabulary, including classes, properties, and constraints, along with normative requirements (MUST/MAY) for conformant policies.</li>
-                <li><strong>Integration with Verifiable Credentials:</strong> Explains how the policy model works with W3C Verifiable Credentials, including data model alignment and verification considerations.</li>
-                <li><strong>SHACL Policy Language Evaluation Semantics:</strong> Defines how to evaluate an access request against SHACL policies, the decision process (allow/deny), and how multiple policies are combined.</li>
-                <li><strong>Examples:</strong> Gives concrete examples of SHACL Policy Language in action (in Turtle syntax), demonstrating real-world policy rules such as age-based access and role-based access using VCs.</li>
-                <li><strong>Appendix: RDF/Turtle Vocabulary:</strong> Provides an authoritative Turtle serialization of the SHACL Policy Language vocabulary for reference and use in implementations.</li>
-            </ul>
-        </section>
-    </section>
+<section id="spl-in-five" class="informative">
+<h3>SPL in five minutes</h3>
+<p>The following example illustrates the ideas in <a href="#goals">Goals and background</a>. An <a>SPL policy</a> is an RDF resource typed <code>shpl:Policy</code> that carries one or more <code>shpl:Rule</code> resources.</p>
+<p>Each rule has exactly one <code>shpl:effect</code> (<code>shpl:Permit</code>, <code>shpl:Deny</code>, or <code>shpl:Obligate</code>), at least one <code>shpl:target</code>, exactly one <code>shpl:action</code>, and optionally a <code>shpl:condition</code> &mdash; a <code>sh:NodeShape</code> evaluated with the access request as <a>focus node</a>.
+If <code>shpl:condition</code> is absent, the condition is satisfied whenever target and action match.</p>
 
-    <section id="use-cases">
-      <h2>Use Cases</h2>
-      <p>
-        SHACL Policy Language is designed to address Attribute-Based Access Control (ABAC) in scenarios where attributes are conveyed via Verifiable Credentials. Below are some motivating use cases:
-      </p>
-      <ul>
-        <li>
-          <strong>Age-Restricted Content:</strong> A video streaming service offers certain content only to adults (18+). To enforce this, a policy requires that the user present a government-issued credential (e.g., an ID credential) proving their age is above 18. The SHACL Policy Language condition checks the birthdate or age claim in the credential against the required threshold. If the condition is not satisfied (no valid proof of age), access is denied.
-        </li>
-        <li>
-          <strong>Role-Based Data Access:</strong> An enterprise data portal restricts editing rights to users who hold a "Manager" role credential issued by the company. A SHACL Policy Language encodes that the user's credentials must include an employment credential with role Manager and issuer CompanyX. Only if a valid credential with those attributes is present will the policy's SHACL shape validate successfully, allowing the edit action.
-        </li>
-        <li>
-          <strong>Membership and Group Access:</strong> A restricted online community permits access only to members of a certain organization or club. For example, only members of the "Alumni Association" (as evidenced by an alumni credential) can access the alumni forum. The policy's condition requires a credential with `memberOf` Alumni Association. Users lacking such a credential (or with an invalid one) will fail the policy check.
-        </li>
-        <li>
-          <strong>Combination of Attributes (Multiple Credentials):</strong> A healthcare data access scenario might require that a requester is both a licensed doctor and is currently affiliated with a hospital. This can be represented as two credentials—a medical license credential and an employment credential. A SHACL Policy Language can enforce that at least one credential meets each of these criteria. (This can be done with multiple shapes or a single shape using logical constraints like `sh:and` or qualified value constraints to ensure the presence of each type of credential.) Only if both conditions are met (license and hospital affiliation) is access granted.
-        </li>
-        <li>
-          <strong>Contextual and Temporal Constraints:</strong> Some access might depend on dynamic or context attributes, such as time of access or current location, possibly conveyed via a credential or an external data feed. For instance, a policy could allow access to a resource only during certain hours and only if the user presents a "Clearance Level 5" credential. SHACL's expressiveness allows inclusion of such constraints (time constraints could be handled by comparing to a known literal or by incorporating a current-time resource via extension mechanisms). While the current specification focuses on credential-based attributes, it is extensible to include context data in the evaluated graph.
-        </li>
-      </ul>
-      <p>These use cases illustrate the need for a flexible policy language that can handle attributes from one or more VCs, numeric and categorical constraints, and logical combinations of conditions. SHACL Policy Language addresses these requirements by using shapes to naturally express "constraints" that mirror the access rules in these scenarios.</p>
-    </section>
-
-    <section id="vocabulary-overview">
-        <h2>Vocabulary Overview</h2>
-        <p>At a high level, SHACL Policy Language introduces a small number of classes and properties to represent access control policies and their components:</p>
-        <ul>
-            <li><strong>Policy</strong> - the central class representing an access control policy rule. A Policy encapsulates:
-                <ul>
-                    <li>The target resource to which it applies (for example, a URI or an RDF class of resources).</li>
-                    <li>The allowed action (operation) on that resource (e.g., read, write).</li>
-                    <li>A condition in the form of a SHACL shape that must be satisfied by the request context (including the user's credentials) for access to be granted or denied.</li>
-                    <li>An effect indicating whether the policy is granting permission or explicitly denying it, which can be distinguished by using sub-classes or a property.</li>
-                </ul>
-            </li>
-            <li><strong>AllowPolicy and DenyPolicy</strong> - two subclasses of Policy (or types of policy) that indicate the effect of the policy:
-                <ul>
-                    <li>An <strong>AllowPolicy</strong> specifies conditions under which an action is permitted. If its condition shape is satisfied, the access is allowed (assuming no other overriding deny).</li>
-                    <li>A <strong>DenyPolicy</strong> specifies conditions under which an action is forbidden. If its condition is satisfied, the access is denied (regardless of other allows). Deny policies are typically used for exceptions or to enforce negative constraints (e.g., "deny access if the user is under 13 years old").</li>
-                </ul>
-            </li>
-            <li><strong>Action</strong> - a class (or enumeration) representing the type of operation being controlled. Common examples of actions include <code>shpl:Read</code> (for read/view access) and <code>shpl:Write</code> (for write/modify access), defined in this specification. Policies reference actions to indicate what operation they govern. The Action class can be extended or individuals can be created for domain-specific actions (e.g., <code>shpl:Delete</code>, <code>shpl:Append</code>) as needed, or external action vocabularies could be used.</li>
-            <li><strong>Resource Targeting</strong> - Policies may need to indicate which resource(s) or resource types they apply to. This is done via the <code>shpl:target</code> property on a Policy, whose value can be:
-                <ul>
-                    <li>A specific resource IRI (if the policy is about a particular named resource).</li>
-                    <li>A class or category of resources (if the policy applies to all resources of a certain type, e.g., "all documents classified as confidential").</li>
-                    <li>In practice, one might also attach policies to resources via some link (for example, a resource could link to a policy that governs it). This specification keeps it simple by allowing the policy itself to carry the target reference.</li>
-                </ul>
-            </li>
-            <li><strong>Condition (SHACL Shape)</strong> - Each Policy has a <code>shpl:condition</code> property linking to a SHACL NodeShape that encodes the constraint to evaluate. This shape is typically defined to validate an "access request" data structure that includes information about the requester (credentials, identity) and the context. For instance, the shape might ensure "there exists at least one credential with claim $X=Y$ and issued by $Z$". If the shape's conditions are met (i.e., the data graph conforms to the shape), then the policy's requirements are satisfied. The shape can be as simple or complex as needed: multiple constraints can be combined within one shape using SHACL's logical operators (<code>sh:and</code>, <code>sh:or</code>, <code>sh:xone</code>, etc.) or qualified value constraints. This approach leverages the full power of SHACL to express conditions on RDF data.</li>
-            <li><strong>Access Request (Data Model for Evaluation)</strong> - While not a formal part of the static vocabulary that needs to be stored, we define an AccessRequest conceptual structure in the data that will be validated by the shape. An AccessRequest can be represented as an RDF node (e.g., a blank node or a URI representing the current request) with properties providing:
-                <ul>
-                    <li>the agent (e.g., the user's identifier or DID),</li>
-                    <li>the action being attempted,</li>
-                    <li>the target resource being accessed,</li>
-                    <li>the credentials presented by the agent (as one or more linked credential nodes, which in turn contain the claims).</li>
-                </ul>
-                The SHACL condition shapes are written to validate this AccessRequest node. For example, a shape might target <code>shpl:AccessRequest</code> and include a property path into <code>shpl:credential</code> to check certain fields on the credential. The AccessRequest class and its properties (agent, credential, etc.) serve as a bridge between the abstract policy and the concrete data against which it's evaluated. (In a running system, the AccessRequest data would be assembled at runtime by the policy engine when a user attempts an action.)
-            </li>
-        </ul>
-        <p>Overall, the SHACL Policy Language vocabulary is minimal. It reuses wherever possible: SHACL vocabulary (specifically, the entire machinery of shapes, constraints, and validation). Verifiable Credentials vocabulary (for describing credentials and their contents, e.g., using <code>cred:credentialSubject</code>, standard claim predicates, etc., as detailed later). Optionally, existing access control vocabularies for agent or resource identifiers (for example, an agent might be a <code>foaf:Agent</code> or a <code>schema:Person</code>, but the policy doesn't deeply inspect those beyond using them as identifiers or linking credentials to them).</p>
-        <p>In the next section, we formally define the SHACL Policy Language model, including the RDF classes and properties mentioned, along with their expected usage. This provides the normative framework for writing policies. Subsequent sections will then cover how to use these in conjunction with Verifiable Credentials and how to evaluate policies at runtime.</p>
-    </section>
-
-    <section id="policy-model" class="normative">
-        <h2>SHACL Policy Language Model</h2>
-        <p>This section defines the SHACL Policy Language vocabulary and model formally. Vocabulary terms introduced here are in the <code>shpl:</code> namespace (a hypothetical namespace for SHACL Policy Language, e.g., <code>https://w3id.org/shacl-policy-language#</code>). The normative statements use keywords like MUST, SHOULD, and MAY according to [[RFC2119]].</p>
-
-        <section id="policy-classes">
-            <h3>Policy and Effect Classes</h3>
-            <dl>
-                <dt><code>shpl:Policy</code></dt>
-                <dd>An RDF class representing an access control policy. A Policy is a rule that associates a condition with an access outcome (allow or deny) for a given action on a resource. Every policy instance MUST have the properties defined below (target, action, condition, and an implied effect via subclass or property).</dd>
-                <dt><code>shpl:AllowPolicy</code></dt>
-                <dd>A subclass of <code>shpl:Policy</code> indicating that it is an "allow" rule. If an instance of AllowPolicy's condition is satisfied for a given request, that contributes to granting access. Formally, an instance of <code>shpl:AllowPolicy</code> MUST be interpreted as a policy that permits the specified action on the target when its condition holds. (If no allow policy's condition holds, then by default the action is not permitted unless some other mechanism allows it.)</dd>
-                <dt><code>shpl:DenyPolicy</code></dt>
-                <dd>A subclass of <code>shpl:Policy</code> indicating a "deny" rule. If the condition of a DenyPolicy is satisfied, access MUST be denied, even if other allow policies might permit it. This provides the ability to specify exceptions or strict prohibitions. An instance of <code>shpl:DenyPolicy</code> MUST be interpreted as a policy that forbids the action on the target when its condition holds.</dd>
-            </dl>
-            <p><strong>Effect Semantics:</strong> An implementation MUST distinguish between <code>shpl:AllowPolicy</code> and <code>shpl:DenyPolicy</code> to know how to apply the policy's result. (See the Evaluation Semantics section for the algorithm.) If a Policy is not explicitly typed as either, it SHOULD be treated as an allow rule by default (unless the system has another way to infer effect). It is RECOMMENDED to always use one of the subclasses to avoid ambiguity.</p>
-        </section>
-
-        <section id="policy-properties">
-            <h3>Policy Properties</h3>
-            <p>Each <code>shpl:Policy</code> (or its subclasses) uses the following properties to define its scope and rule:</p>
-            <dl>
-                <dt><code>shpl:target</code> (IRI or class, required)</dt>
-                <dd>The resource or resource class to which this policy applies. A Policy MUST have at least one <code>shpl:target</code> value. If multiple targets are present, the policy applies to all those resources (i.e., it is applicable when the requested resource matches any one of the targets). The object of <code>shpl:target</code> can be:
-                    <ul>
-                        <li>A specific resource URI (e.g., <code>&lt;https://example.com/resource/123&gt;</code>).</li>
-                        <li>A class or category (e.g., <code>ex:SensitiveResource</code>) to indicate a policy that covers all instances of that class.</li>
-                        <li>A broader identifier like a URI prefix or pattern (though this spec does not define a pattern syntax; such usage would be non-normative or left to extensions).</li>
-                    </ul>
-                    <p><strong>Conformance:</strong> When evaluating a policy against an access request (which includes a specific target resource), an implementation MUST ensure the policy's <code>shpl:target</code> matches the requested resource. If there is no match, the policy is not applicable. The exact matching algorithm (especially for class targets) is out of scope of this spec but typically involves checking RDF types or identity equality. For simple URI targets, a match is a URI equality comparison.</p>
-                </dd>
-                <dt><code>shpl:action</code> (IRI, required)</dt>
-                <dd>The action (operation) that the policy governs. A Policy MUST have exactly one <code>shpl:action</code> property, whose value is an IRI representing the action. Only if the access request's action matches this value is the policy considered applicable. The SHACL Policy Language namespace defines a few common actions (see Actions below), but this property can point to any IRI (including those in other vocabularies like the Solid ACL's <code>acl:Read</code> or ODRL actions) as long as both policy and request refer to the same IRI for the action. In other words, action identifiers should be agreed upon in the application domain. If an AccessRequest specifies an action not covered by any policy's <code>shpl:action</code>, then none of those policies would apply (resulting in default deny unless another mechanism allows it).</dd>
-                <dt><code>shpl:condition</code> (SHACL NodeShape, required)</dt>
-                <dd>The core of the policy—a link to a SHACL NodeShape that encodes the condition to be evaluated. Each Policy MUST have exactly one <code>shpl:condition</code> property. The object is typically a blank node or URI of a SHACL shape defined according to the SHACL specification (i.e., using <code>rdf:type sh:NodeShape</code> and various <code>sh:property</code>, <code>sh:constraintComponent</code> etc., to describe the constraint). This shape is expected to validate an AccessRequest node (see below) or some part of it. If the shape validates successfully (no SHACL violations) on the provided data, we say the policy's condition is satisfied for that request. If the shape results in any validation errors, the condition is not met.
-                <p>The shape definition can leverage all of SHACL's features. It SHOULD be written such that it targets the relevant node in the AccessRequest structure. For convenience, a policy's shape will often use <code>sh:targetClass shpl:AccessRequest</code> to indicate it should be run on any node of type <code>shpl:AccessRequest</code> (or the specific request node can be passed to the SHACL engine as the focus). The shape may navigate from the AccessRequest to related data (like credentials, agent properties, etc.) via property paths.</p>
-                <p>Example: A shape might contain a property constraint like: <code>sh:path shpl:credential; sh:qualifiedValueShape (some constraint); sh:qualifiedMinCount 1.</code> which ensures at least one credential attached to the request meets some condition. See the Examples section for concrete shape illustrations.</p>
-                </dd>
-            </dl>
-        </section>
-        <section id="access-request-model">
-            <h3>Access Request and Related Properties</h3>
-            <p>While policies are the main artifacts authored and stored, evaluating a policy requires a representation of the current access request. This specification defines an <code>shpl:AccessRequest</code> class to standardize that representation for the purpose of shape evaluation:</p>
-             <dl>
-                <dt><code>shpl:AccessRequest</code></dt>
-                <dd>An RDF class that represents an access request context. It is not required that an AccessRequest be stored long-term; it can be a transient graph structure composed when checking a policy. However, for the shapes to operate, the data should be modeled with this structure. An AccessRequest instance SHOULD have the following properties:
-                    <ul>
-                        <li><code>shpl:agent</code>: The entity attempting access. This could be a URI (e.g., a DID or a user's WebID) or a blank node representing the user. The exact nature of the agent identifier is domain-specific. The agent may be referenced in credentials (e.g., as <code>credentialSubject id</code>) but that linkage is something the verification process might ensure (for example, by requiring that the agent's ID matches the subject of the credential - such matching can also be encoded as part of the shape if needed).</li>
-                        <li><code>shpl:target</code>: The resource the agent is trying to access. This should equal one of the policy's targets for the policy to apply, but in an AccessRequest it will be a single resource IRI. (Using the same property <code>shpl:target</code> for both Policy and AccessRequest is conceptually convenient - one denotes the rule's scope, the other the instance being accessed.)</li>
-                        <li><code>shpl:action</code>: The action being performed (e.g., <code>shpl:Read</code>, <code>shpl:Write</code>). Again, the AccessRequest's action must match the policy's action for relevance. Using the same action identifier vocabulary ensures consistency.</li>
-                        <li><code>shpl:credential</code>: One or more Verifiable Credentials presented by the agent in support of the access request. Each value of <code>shpl:credential</code> should be an RDF node representing a credential (for example, a node of type <code>cred:VerifiableCredential</code> with associated claims about the subject). The credentials linked here are assumed to be already verified (i.e., the system should check their signatures, expiration, etc., before evaluation) and relevant to the policy check. The SHACL conditions will inspect these credential nodes to see if required attributes are present.</li>
-                    </ul>
-                    An AccessRequest may include additional contextual information if needed (for instance, <code>shpl:environment</code> or other properties could be defined in extensions to capture time, location, or other factors). This specification focuses on credentials and core fields. If such extra data is needed, it can be included in the data graph and referenced by shapes (for example, a shape could reference a timestamp node for time-based rules).
-                </dd>
-            </dl>
-            <p><strong>Cardinalities and Requirements:</strong> When constructing an AccessRequest data graph for evaluation: - There SHOULD be exactly one <code>shpl:agent</code>, one <code>shpl:target</code>, and one <code>shpl:action</code> property on the AccessRequest node, corresponding to the specific request. There MAY be multiple <code>shpl:credential</code> entries (for instance, the requester provides several credentials). Each credential node SHOULD be in a format consistent with the VC Data Model (detailed in the next section), and typically of type <code>cred:VerifiableCredential</code>. The credential's claims about the subject are expected to be present in a structured form (either directly as properties of the credential node or via a <code>cred:credentialSubject</code> blank node with those properties).</p>
-        </section>
-         <section id="actions-vocab">
-            <h3>Actions</h3>
-            <p>This specification defines a base <code>shpl:Action</code> class for actions and a few common action instances:</p>
-             <dl>
-                <dt><code>shpl:Action</code> (class)</dt>
-                <dd>a generic class for actions that can be taken on resources. This can be extended or simply used to type individual action IRIs.</dd>
-                 <dt><code>shpl:Read</code></dt>
-                <dd>an individual of type <code>shpl:Action</code>, representing read/view access to a resource. Policies with <code>shpl:action shpl:Read</code> apply to requests to read or retrieve the resource (e.g., HTTP GET or similar).</dd>
-                 <dt><code>shpl:Write</code></dt>
-                <dd>an individual of type <code>shpl:Action</code>, representing write/modify access to a resource. This could encompass create, update, delete operations in a broad sense. - (Other action instances could be defined similarly, such as <code>shpl:Append</code>, <code>shpl:Delete</code>, <code>shpl:Admin</code>, depending on the granularity needed. For the purposes of this spec, we list only Read and Write for illustration. Domains can use their own action identifiers too; e.g., a data space might define <code>ex:Transfer</code> or other custom actions.)</dd>
-            </dl>
-            <p><strong>Note:</strong> The <code>shpl:action</code> property of a policy or AccessRequest is not restricted to instances of <code>shpl:Action</code>; using an external action vocabulary is allowed. However, using the provided ones ensures a common understanding for basic operations. If using external actions, all relevant policies and requests must align on those terms.</p>
-        </section>
-        <section id="normative-summary">
-            <h3>Normative Requirements Summary</h3>
-            <p>To summarize the key normative constraints for a valid SHACL Policy Language and usage:</p>
-            <ul>
-                <li><strong>Policy Instances:</strong> A conformant policy instance MUST:
-                    <ul>
-                        <li>Be of type <code>shpl:Policy</code> (or a subclass thereof, e.g., <code>shpl:AllowPolicy</code> or <code>shpl:DenyPolicy</code>).</li>
-                        <li>Have exactly one <code>shpl:action</code> property (value is an IRI).</li>
-                        <li>Have at least one <code>shpl:target</code> property (one or more values as IRIs or classes).</li>
-                        <li>Have exactly one <code>shpl:condition</code> property (value is a SHACL NodeShape definition).</li>
-                        <li>Optionally be further typed as <code>shpl:AllowPolicy</code> or <code>shpl:DenyPolicy</code> to indicate effect (recommended). If not, it defaults to allow semantics.</li>
-                    </ul>
-                </li>
-                <li><strong>NodeShape for condition:</strong> The shape linked by <code>shpl:condition</code> SHOULD be crafted to evaluate an <code>shpl:AccessRequest</code>. It MAY use <code>sh:targetClass shpl:AccessRequest</code> or rely on being invoked on a specific node. The shape MUST be a valid SHACL shape definition (conforming to SHACL Core or SHACL-SPARQL as needed).</li>
-                <li><strong>AccessRequest structure:</strong> When evaluating, the input data graph MUST contain a representation of the request. At minimum, an AccessRequest node (which MAY be a blank node) with properties <code>shpl:agent</code>, <code>shpl:target</code>, <code>shpl:action</code>, and <code>shpl:credential</code> (as applicable). The values for these should accurately reflect the actual request being checked.</li>
-                <li><strong>Credential data:</strong> Any credential provided in the AccessRequest SHOULD be verified (signature valid, not expired/revoked) before or during the policy evaluation process. The SHACL Policy Language spec does not mandate how verification is done, but for a credential to be trusted in the policy check, an implementation MUST perform the necessary cryptographic verification per the VC Data Model. If a credential cannot be verified or is invalid, the implementation SHOULD treat it as not present or not satisfying any condition.</li>
-            </ul>
-        </section>
-    </section>
-
-    <section id="vc-integration">
-        <h2>Integration with Verifiable Credentials</h2>
-        <p>SHACL Policy Language is designed to work hand-in-hand with the W3C Verifiable Credentials (VC) Data Model. This section describes how credentials are represented and used in policy evaluation, and outlines best practices for ensuring that only valid credentials influence access decisions.</p>
-        <section id="representing-credentials">
-            <h3>Representing Credentials in RDF</h3>
-            <p>Verifiable Credentials are typically issued as JSON (often JSON-LD) objects. The VC Data Model 1.1/2.0 defines a standard context such that a credential can be interpreted as RDF triples. In an RDF representation (after JSON-LD processing), a credential is an entity of type <code>cred:VerifiableCredential</code> (using namespace prefix <code>cred:</code> for <code>https://www.w3.org/2018/credentials#</code>). Key fields of a VC such as <code>credentialSubject</code>, <code>issuer</code>, <code>issuanceDate</code>, <code>expirationDate</code>, etc., become RDF properties in the <code>cred:</code> namespace (e.g., <code>cred:credentialSubject</code>, <code>cred:issuer</code>). Claims about the subject are typically represented as a separate node (blank node or IRI) linked via <code>cred:credentialSubject</code>, containing the claim predicates (which might be from any schema, e.g., <code>schema:age</code>, <code>ex:memberOf</code>, etc.).</p>
-            <p>Example RDF mapping of a VC: Consider a VC (in JSON) that states Alice's age is 20, issued by ExampleGov. In RDF/Turtle form, it might look like:</p>
-            <pre class="nohighlight">
-:AliceAgeCredential a cred:VerifiableCredential;
-  cred:issuer &lt;did:example:gov&gt;;
-  cred:credentialSubject [
-    a schema:Person;
-    schema:age 20;
-    schema:name "Alice";
-    schema:birthDate "2005-01-01"^^xsd:date
-  ];
-  cred:issuanceDate "2025-06-01T00:00:00Z"^^xsd:dateTime.
-            </pre>
-            <p><strong>Namespaces and Prefixes:</strong> The SHACL Policy Language shapes and the AccessRequest data should use the same RDF representation for credentials. It is RECOMMENDED to use well-known vocabulary for common claims: E.g., <code>schema:age</code> or <code>schema:birthDate</code> for age, or a custom namespace like <code>ex:membership</code> or roles, perhaps <code>schema:affiliation</code> or custom <code>ex:memberOf</code>. The exact predicates depend on issuer practice, but as long as the shape writer and the credentials align, it will work. One may also write shapes flexibly (like checking for one of several possible properties for age).</p>
-            <p>This specification itself does not define new terms for VC claims; it assumes credentials are self-descriptive via their schemas. It focuses on how policies consume those claims.</p>
-        </section>
-        <section id="using-credentials">
-            <h3>Using Credentials in an AccessRequest</h3>
-            <p>When assembling the <code>AccessRequest</code> data graph for a policy check, any Verifiable Credential presented by the user should be included as an RDF node linked via <code>shpl:credential</code>. Typically, the process is:</p>
-            <ol>
-                <li><strong>Credential Verification:</strong> The system receives a VC (e.g., via a Verifiable Presentation or an authorization protocol like OAuth-OIDC for VCs). The system MUST verify the credential's signature and check its status (e.g., not revoked) and validity (within issuance/expiration bounds) according to the VC Data Model and any applicable trust framework. If verification fails, the credential is discarded or marked as invalid.</li>
-                <li><strong>RDF Conversion:</strong> The claims from the credential are converted to RDF. If the credential is JSON-LD and context is known, this can be done by a JSON-LD processor. Alternatively, a manual mapping can populate an RDF graph with the needed triples (as illustrated above). The output should include at least the claims relevant to the policy and ideally also the type, issuer, and other metadata if needed for conditions.</li>
-                <li><strong>Linking in AccessRequest:</strong> In the AccessRequest node, add a triple linking <code>shpl:credential</code> to the credential's RDF node. If multiple credentials are presented, add multiple such triples (or use an RDF collection, though multiple triples is simpler and natural in RDF).</li>
-                <li><strong>Agent-Subject Binding:</strong> One critical aspect is ensuring the credential actually belongs to the agent. The system should ensure that the <code>cred:credentialSubject</code> corresponds to the agent making the request. This might be done by checking if the agent's ID (like a DID or profile URI) is explicitly mentioned in the credential (many VCs have an <code>id</code> inside <code>credentialSubject</code> or use the subject's DID as the subject ID). If present, the shape could enforce that (e.g., a shape constraint like <code>sh:path (shpl:credential cred:credentialSubject cred:id); sh:hasValue &lt;agent ID&gt;</code>). Alternatively, presentation protocols (like DIDs and proofs) might ensure the holder is the subject (e.g., via a challenge-response or binding mechanism). This specification does not mandate how holder binding is achieved, but policy authors SHOULD account for it in high-security scenarios. At minimum, if the VC has a subject identifier, a shape constraint can check it matches the known agent's URI.</li>
-            </ol>
-            <p><strong>Multiple Credentials and Logical Conditions:</strong> The SHACL shapes can handle multiple credentials by using qualified value shapes or logical operators. For example, to require both a diploma and an employee ID credential, one could write a shape that has two property constraints on <code>shpl:credential</code> - each with <code>sh:qualifiedValueShape</code> matching one type of credential and <code>sh:qualifiedMinCount 1</code>. This means "at least one credential of type Diploma AND at least one of type EmployeeID must be present". The intersection (<code>sh:and</code>) of those conditions ensures both are there.</p>
-            <h4>Example Integration Walk-through</h4>
-            <p>Consider the Role-Based Data Access use case: Only managers (with a ManagerRole VC) can edit a resource. Here's how integration would happen:</p>
-            <ul>
-                <li>The user (agent) presents a Verifiable Credential: `ManagerRoleCredential` issued by CompanyX, with claim `role = Manager` and subject `did:example:alice` (the user's DID).</li>
-                <li>The system verifies the credential (signature from CompanyX, check not expired).</li>
-                <li>The system converts it to RDF:
-                    <pre class="nohighlight">
-:ManagerRoleCred a cred:VerifiableCredential;
-  cred:issuer &lt;did:example:CompanyX&gt;;
-  cred:credentialSubject [
-    cred:id &lt;did:example:alice&gt;;
-    ex:role "Manager";
-    ex:employeeOf &lt;did:example:CompanyX&gt;
-  ].
-                    </pre>
-                </li>
-                <li>The AccessRequest is built for Alice's attempt to perform action <code>shpl:Write</code> on resource <code>&lt;https://data.example.com/doc123&gt;</code>:
-                    <pre class="nohighlight">
-[] a shpl:AccessRequest;
-  shpl:agent &lt;did:example:alice&gt;;
-  shpl:action shpl:Write;
-  shpl:target &lt;https://data.example.com/doc123&gt;;
-  shpl:credential :ManagerRoleCred.
-                    </pre>
-                </li>
-                <li>The relevant policy (for editing documents) might have <code>shpl:action shpl:Write</code>, <code>shpl:target ex:Document</code> (class for all docs, and doc123 is a ex:Document), and a shape that says "exists a credential with role Manager issued by CompanyX to this agent".</li>
-                <li>The shape would check in the data: - There is at least one <code>shpl:credential</code> whose <code>cred:credentialSubject/ex:role</code> is "Manager" and whose <code>cred:issuer</code> is CompanyX and whose <code>cred:credentialSubject/cred:id</code> is the agent's DID.</li>
-                <li>In this case, our data has exactly that, so the shape passes. The policy is an AllowPolicy, so access is permitted.</li>
-            </ul>
-        </section>
-        <section id="security-considerations">
-            <h3>Trust and Security Considerations</h3>
-            <p>It is important to emphasize: SHACL Policy Language by itself does not verify cryptographic signatures or proof of ownership for credentials. It assumes that step has been done. The shapes operate on data that could be tampered with if not verified. Therefore, any implementation MUST ensure credentials in the AccessRequest graph are authentic and belong to the agent. This typically means integrating with a Verifiable Credentials verification library or service. If an unverified credential were injected into the AccessRequest graph, the shapes might erroneously grant access. So the pipeline is: verify credentials -> populate RDF graph -> run SHACL validation. The evaluation process should also run in a secure environment. For example, if using SHACL-SPARQL constraints, ensure the SPARQL execution cannot be abused (since SPARQL can be quite powerful). - Privacy: Policies might reveal what attributes are being checked (especially if a denial is logged or communicated). Care should be taken not to leak unnecessary info. However, since credentials are presented by the user, they generally know which attributes might be considered.</p>
-            <p>This integration section clarifies that SHACL Policy Language builds atop the VC infrastructure: it does not replace any part of the VC model (issuance, exchange, verification) it only leverages the resulting verified claims to make access decisions in a standardized way.</p>
-        </section>
-    </section>
-
-    <section id="evaluation-semantics">
-        <h2>SHACL Policy Language Evaluation Semantics</h2>
-        <p>This section defines how to evaluate one or more SHACL Policies against an incoming access request to produce an authorization decision (permit or deny). The process can be summarized as: collect applicable policies → evaluate each policy's shape on the request data → combine results according to policy effects (allow/deny) to reach a final decision.</p>
-        <section>
-            <h3>Applicability of Policies</h3>
-            <p>When a subject (agent) attempts to perform an action on a resource, the policy decision point (PDP) should first determine which policies are relevant. To do this:</p>
-            <ol>
-                <li><strong>Match by Action:</strong> Only consider policies where the <code>shpl:action</code> equals the action of the request.</li>
-                <li><strong>Match by Target:</strong> Among those, only consider policies where the requested resource matches one of the policy's <code>shpl:target</code> values. This could be a direct URI match or a type/class match (e.g., if the resource is of type <code>ex:Document</code> and the policy target is <code>ex:Document</code> class).</li>
-                <li>Optionally, match by other criteria if policies are scoped in other ways (not in core spec, but e.g., a policy might apply only to certain agents or contexts, which could be encoded in the shape or meta-properties).</li>
-            </ol>
-            <p>All policies that pass these filters are the applicable policies for this request. If no policies are applicable, the system SHOULD deny access by default (fail-safe principle), unless a separate default allow rule exists in the environment (this spec assumes default deny if not configured otherwise).</p>
-        </section>
-        <section>
-            <h3>Data Preparation</h3>
-            <p>The PDP constructs an AccessRequest data graph representing this access attempt, as described earlier (with agent, target, action, credentials, etc.). This graph will be used for SHACL validation. The PDP MUST ensure that: The data graph is complete with all necessary information for the shapes (e.g., if shapes expect certain claims, those claims are present if available). Credential data in the graph is from verified credentials (as discussed in Integration).</p>
-        </section>
-        <section>
-            <h3>Shape Evaluation</h3>
-            <p>For each applicable policy:</p>
-            <ul>
-                <li>The <code>shpl:condition</code> NodeShape is retrieved.</li>
-                <li>The SHACL validation engine is invoked on the AccessRequest data (the shapes graph consists at least of this shape; it could also include a shapes graph with multiple shape definitions, but here it's typically one main shape per policy).</li>
-                <li>The focus of validation: If the shape has <code>sh:targetClass shpl:AccessRequest</code>, the engine will automatically test all AccessRequest nodes in data (there should be one). Alternatively, the PDP can direct the engine to specifically validate the AccessRequest node against the shape.</li>
-                <li>Result: The outcome will be either "conforms" (no violations) or "does not conform" (violations found). We map this to:
-                    <ul>
-                        <li><strong>Condition Satisfied (TRUE):</strong> if the data conforms to the shape (meaning the policy's constraints are all met by the provided credentials/context).</li>
-                        <li><strong>Condition Not Satisfied (FALSE):</strong> if the data does not conform (meaning at least one required condition is not met).</li>
-                    </ul>
-                </li>
-            </ul>
-            <p>It is possible to retrieve a validation report with details, but for access control, usually just a boolean satisfaction is needed. Implementations MAY log or examine the report for debugging (e.g., to see which constraint failed, to inform the user why access was denied, if that's appropriate).</p>
-        </section>
-        <section>
-            <h3>Combining Policy Outcomes</h3>
-            <p>Once each applicable policy's condition is evaluated:</p>
-            <ol>
-                <li>Partition the policies by effect: those that are Allow (including default Policy treated as allow) and those that are Deny.</li>
-                <li>Determine if any deny conditions are satisfied: If any DenyPolicy condition is TRUE, the request MUST be denied. A deny rule overrides any allows. (This is a common safety approach also used in XACML and others deny policies have priority.)</li>
-                <li>The PDP can short-circuit evaluation if one deny comes out true (no need to evaluate further, except perhaps for logging all violations).</li>
-                <li>If no deny conditions are true, then check allows: If at least one AllowPolicy condition is TRUE, then the request MAY be permitted (proceed to allow). In other words, one valid allow is sufficient to authorize, provided no denies triggered.</li>
-                <li>If no AllowPolicy is true (and also no deny was true), then the request is denied by default (meaning it didn't meet any known rule to permit it). This is effectively a default deny if nothing says "yes".</li>
-            </ol>
-            <p>These rules can be summarized in pseudocode or a list:</p>
-            <ol>
-                <li>For each applicable policy P:
-                    <ul>
-                        <li>Evaluate condition shape on request data→ get boolean result.</li>
-                        <li>If P is a DenyPolicy and result is true: deny (stop and deny).</li>
-                    </ul>
-                </li>
-                <li>If any allow policy had result true (and no deny was triggered): allow.</li>
-                <li>Otherwise: deny (no allows satisfied, or no applicable policies at all).</li>
-            </ol>
-            <p><strong>Conflict Resolution:</strong> The above strategy inherently resolves conflicts by prioritizing denies. This is the RECOMMENDED conflict resolution strategy for security (often called "deny overrides"). In some environments, policies might be written such that conflicts are unlikely (e.g., using only allow rules or only deny rules for a given action). If a different conflict resolution is needed (not covered by this spec), it should be carefully designed and perhaps indicated by a policy set configuration. This specification sticks to deny-overrides for simplicity and safety.</p>
-        </section>
-        <section>
-            <h3>Obligations and Advanced Concepts</h3>
-            <p>ODRL and some policy languages have the notion of obligations or duties (actions that must be performed upon allowing access). SHACL Policy Language in this version does not explicitly model obligations. It focuses purely on allow/deny decisions. If obligations are needed (e.g., "log this access" or "notify someone when accessed"), those could be implemented outside of this policy evaluation or potentially encoded as part of the condition (though that's a bit of a hack) or future vocabulary extension (like <code>shpl:ObligationPolicy</code> with actions to trigger). For now, obligations are out of scope; the spec's aim is authorization (not auditing or usage control post-decision).</p>
-        </section>
-        <section>
-            <h3>Performance Considerations</h3>
-            <p>Evaluating SHACL shapes for each request could introduce overhead, especially if shapes are complex (e.g., using SPARQL) or if there are many policies. Implementations should consider:</p>
-            <ul>
-                <li>Pre-compiling or optimizing shapes if possible.</li>
-                <li>Caching policy decisions for repeated requests (with caution, ensure that credentials and context haven't changed).</li>
-                <li>Minimizing the data graph size (include only necessary triples in the AccessRequest graph).</li>
-            </ul>
-            <p>However, given that many use cases involve a handful of credentials and a moderate number of policies, SHACL evaluation is likely to be fast (SHACL engines can typically handle hundreds of constraints quickly, as they are essentially rule checks). Also, since policies are decoupled, the engine could evaluate them in parallel if needed.</p>
-        </section>
-        <section>
-            <h3>Example Scenario Outcome</h3>
-            <p>To illustrate the semantics, imagine:</p>
-            <ul>
-                <li><strong>Policies:</strong> P1 (Allow if age ≥ 18), P2 (Deny if age < 13).</li>
-                <li><strong>Alice (age 20) tries access:</strong> P1's shape sees a credential with age 20 (≥18) -> condition true. P2's shape checks if any credential shows age < 13. None do -> condition false. No deny true, an allow is true -> <strong>Access allowed.</strong></li>
-                <li><strong>Bob (age 10) tries access:</strong> P1: any credential age ≥18? He has age 10, so no -> condition false. P2: any credential age < 13? Yes, age 10 qualifies -> condition true. A deny is true -> <strong>Access denied.</strong></li>
-                <li><strong>Carol (no credential) tries access:</strong> P1: no credential with age ≥18 -> condition false. P2: no credential with age <13 either -> condition false. No denies triggered, but also no allows satisfied -> <strong>Access denied (default).</strong></li>
-            </ul>
-        </section>
-    </section>
-
-    <section id="examples">
-        <h2>Examples</h2>
-        <p>This section provides normative (but illustrative) examples of SHACL Policy Language in action. The examples are written in Turtle syntax for clarity, showing how one might define policies and how a request would be evaluated against them. Each example is accompanied by an explanation.</p>
-        <p>For brevity, we will use a hypothetical prefix <code>ex:</code> for example terms (e.g., <code>ex:Resource123</code> as a resource, and some example claim properties under <code>ex:</code>). We also use <code>vc:</code> prefix for Verifiable Credentials vocabulary (<code>vc:</code> here mapped to <code>https://www.w3.org/2018/credentials#</code> as an alias of <code>cred:</code>). Assume the SHACL Policy Language vocabulary prefix <code>shpl:</code> is defined as described.</p>
-
-        <section id="example1">
-            <h3>Example 1: Age-Based Access (Adult Content Policy)</h3>
-            <p><strong>Scenario:</strong> A resource (e.g., a video or website section) should only be accessible by users 18 years or older. Users can prove their age via a verifiable credential (for example, an ID credential with a birthdate or age claim).</p>
-            <p><strong>Policy Definition (Allow if age ≥ 18):</strong></p>
-            <pre class="nohighlight">
-@prefix ex: &lt;http://example.com/ns#&gt; .
+<pre class="example nohighlight" title="Minimal SPL policy (Turtle)">
 @prefix shpl: &lt;https://w3id.org/shacl-policy-language#&gt; .
-@prefix sh: &lt;http://www.w3.org/ns/shacl#&gt; .
-@prefix vc: &lt;https://www.w3.org/2018/credentials#&gt; .
-
-ex:AdultAccessPolicy a shpl:AllowPolicy;
-  shpl:target ex:AdultOnlyResource;
-  shpl:action shpl:Read;
-  shpl:condition [
-    a sh:NodeShape;
-    sh:targetClass shpl:AccessRequest;
-    sh:description "Allow access if at least one credential shows age >= 18";
-    sh:property [
-      sh:path shpl:credential;
-      sh:qualifiedValueShape [
-        a sh:NodeShape;
-        sh:property [
-          sh:path vc:credentialSubject;
-          sh:node [
-            sh:property [
-              sh:path ex:age;
-              sh:minInclusive 18;
-            ]
-          ]
-        ]
-      ];
-      sh:qualifiedMinCount 1;
-      sh:message "User must present a credential proving age 18 or above.";
-    ];
-  ].
-            </pre>
-            <p><strong>Explanation:</strong> This <code>shpl:AllowPolicy</code> named <code>ex:AdultAccessPolicy</code> targets <code>ex:AdultOnlyResource</code> for read access. The condition shape attached to it says: "In the AccessRequest, there must be at least one credential whose credentialSubject has an <code>ex:age</code> property with value ≥18". We use <code>sh:qualifiedValueShape</code> on the <code>shpl:credential</code> property to implement the "at least one credential" logic. If a user presents a credential that meets this criterion (e.g., a driver's license credential stating their age or birth year indicating age ≥18), then the shape will validate, satisfying the policy. If no such credential is present, the shape fails and thus the policy does not grant access.</p>
-            <p><strong>Sample AccessRequest:</strong> Suppose Alice, 20 years old, presents a credential with <code>ex:age 20</code>. The AccessRequest (in Turtle) might be:</p>
-            <pre class="nohighlight">
-@prefix ex: &lt;http://example.com/ns#&gt; .
-@prefix shpl: &lt;https://w3id.org/shacl-policy-language#&gt; .
-@prefix vc: &lt;https://www.w3.org/2018/credentials#&gt; .
-
-# Alice's Age Credential (verifiable credential data)
-:AliceAgeCredential a vc:VerifiableCredential;
-  vc:credentialSubject [
-    ex:age 20;
-    ex:name "Alice"
-  ].
-
-# Access request for Alice trying to read AdultOnlyResource
-:Request1 a shpl:AccessRequest;
-  shpl:agent &lt;did:example:alice&gt;;
-  shpl:action shpl:Read;
-  shpl:target ex:AdultOnlyResource;
-  shpl:credential :AliceAgeCredential.
-            </pre>
-            <p>When evaluating <code>ex:AdultAccessPolicy</code> against this request, the SHACL engine finds that <code>:AliceAgeCredential</code> has <code>ex:age 20</code> which satisfies the <code>sh:minInclusive 18</code>. Therefore, the condition is true, and since this is an AllowPolicy, Alice is permitted access. If Alice had not provided that credential, or if the age was below 18, the condition would fail and the policy would not grant access (and presumably no other allow policy would, resulting in denial).</p>
-        </section>
-
-        <section id="example2">
-            <h3>Example 2: Deny Policy for Underage Users (COPPA Compliance)</h3>
-            <p><strong>Scenario:</strong> For compliance (e.g., COPPA in the US), users under 13 years old should be explicitly denied access to a certain resource, regardless of other credentials. This is a deny rule to ensure young minors cannot access. This could accompany the above allow policy, adding an extra safety net.</p>
-            <p><strong>Policy Definition (Deny if age < 13):</strong></p>
-            <pre class="nohighlight">
-ex:Under13DenyPolicy a shpl:DenyPolicy;
-  shpl:target ex:AdultOnlyResource;
-  shpl:action shpl:Read;
-  shpl:condition [
-    a sh:NodeShape;
-    sh:targetClass shpl:AccessRequest;
-    sh:description "Deny access if any credential shows age under 13";
-    sh:property [
-      sh:path shpl:credential;
-      sh:qualifiedValueShape [
-        a sh:NodeShape;
-        sh:property [
-          sh:path vc:credentialSubject;
-          sh:node [
-            sh:property [
-              sh:path ex:age;
-              sh:maxExclusive 13;
-            ]
-          ]
-        ]
-      ];
-      sh:qualifiedMinCount 1;
-      sh:message "Access denied: user appears to be under 13 years old.";
-    ];
-  ].
-            </pre>
-            <p><strong>Explanation:</strong> <code>ex:Under13DenyPolicy</code> is a DenyPolicy on the same resource and action (read on AdultOnlyResource). The shape here checks for the presence of any credential indicating an age < 13 (<code>sh:maxExclusive 13</code> means strictly less than 13). If at least one such credential is found, the shape conforms (meaning the deny condition is met) and thus the policy will trigger a denial.</p>
-            <p><strong>Usage:</strong> Combined with Example 1, the evaluation works as described in the semantics: The deny policy is checked; if its condition is true (user is under 13), immediate deny. Otherwise, the allow policy is checked for ≥18. So effectively, 0-12 year olds are always denied (due to Under13DenyPolicy triggering). 13-17 year olds are not caught by deny (because not <13), but also fail the ≥18 allow, so they end up denied (no allow triggered). 18+ year olds are not caught by deny, and satisfy allow, so allowed. This showcases how an allow and deny policy can complement each other.</p>
-        </section>
-
-        <section id="example3">
-            <h3>Example 3: Organization Membership Requirement</h3>
-            <p><strong>Scenario:</strong> Only members of Example Organization are allowed access to a certain internal resource. The user must present a credential (perhaps an organizational ID card or membership VC) that proves <code>ex:memberOf ExampleOrg</code>. This is an allow policy condition.</p>
-            <p><strong>Policy Definition (Allow if member of ExampleOrg):</strong></p>
-             <pre class="nohighlight">
-ex:OrgMemberPolicy a shpl:AllowPolicy;
-  shpl:target ex:InternalResource;
-  shpl:action shpl:Read;
-  shpl:condition [
-    a sh:NodeShape;
-    sh:targetClass shpl:AccessRequest;
-    sh:description "Allow access if user has a credential proving membership in ExampleOrg";
-    sh:property [
-      sh:path shpl:credential;
-      sh:qualifiedValueShape [
-        a sh:NodeShape;
-        sh:property [
-          sh:path vc:credentialSubject;
-          sh:node [
-            sh:property [
-              sh:path ex:memberOf;
-              sh:hasValue ex:ExampleOrg;
-            ]
-          ]
-        ]
-      ];
-      sh:qualifiedMinCount 1;
-      sh:message "User must present an ExampleOrg membership credential.";
-    ];
-  ].
-            </pre>
-            <p><strong>Explanation:</strong> This policy, <code>ex:OrgMemberPolicy</code>, grants read access to <code>ex:InternalResource</code> only if the user has a credential whose credentialSubject has property <code>ex:memberOf</code> equal to <code>ex:ExampleOrg</code>. We assume here <code>ex:ExampleOrg</code> is an identifier (URI) for the organization. The shape uses <code>sh:hasValue ex:ExampleOrg</code> to require an exact match. This implies the credential must explicitly state that membership.</p>
-            <p><strong>Sample Credential:</strong> The user might have a VC like:</p>
-            <pre class="nohighlight">
-:MemberCred a vc:VerifiableCredential;
-  vc:issuer &lt;did:example:ExampleOrg&gt;;
-  vc:credentialSubject [
-    cred:id &lt;did:example:user123&gt;;
-    ex:memberOf ex:ExampleOrg;
-    ex:memberSince "2020-01-01"^^xsd:date
-  ].
-            </pre>
-            <p><strong>Multiple Orgs / Extensibility:</strong> If in the future one wanted to allow membership in a set of organizations (say ExampleOrg or PartnerOrg), the shape could use <code>sh:in (ex:ExampleOrg ex:PartnerOrg)</code> instead of <code>sh:hasValue</code>, or use a regex or class-based approach. SHACL allows those adjustments easily.</p>
-        </section>
-
-         <section id="example4">
-            <h3>Example 4: Multiple Credentials (Logical AND of Conditions)</h3>
-            <p><strong>Scenario:</strong> A highly sensitive resource requires two conditions: (a) The user must have a Clearance Level 5 credential from a trusted authority, and (b) the user must have an Employment credential from CompanyXYZ (i.e., they currently work for the company that owns the resource). Both must be true to permit access.</p>
-            <p>The straightforward way: one policy with a single shape that itself encodes both requirements.</p>
-            <p><strong>Policy Definition (Allow if has Clearance5 AND CompanyXYZ employment):</strong></p>
-             <pre class="nohighlight">
-ex:SensitivityAccessPolicy a shpl:AllowPolicy;
-  shpl:target ex:HighlySensitiveResource;
-  shpl:action shpl:Read;
-  shpl:condition [
-    a sh:NodeShape;
-    sh:targetClass shpl:AccessRequest;
-    sh:description "Allow if user has (ClearanceLevel5 credential) AND (CompanyXYZ employment credential)";
-    # Using two property constraints on shpl:credential for each requirement
-    sh:property [
-      sh:path shpl:credential;
-      sh:qualifiedValueShape [
-        sh:property [
-          sh:path vc:credentialSubject;
-          sh:node [
-            sh:property [
-              sh:path ex:clearanceLevel;
-              sh:hasValue "5";
-            ]
-          ]
-        ];
-        # also ensure issuer is the trusted authority
-        sh:property [
-            sh:path vc:issuer;
-            sh:hasValue &lt;did:example:SecurityAgency&gt;;
-        ]
-      ];
-      sh:qualifiedMinCount 1;
-      sh:message "Needs a Level 5 Clearance credential from SecurityAgency.";
-    ];
-    sh:property [
-      sh:path shpl:credential;
-      sh:qualifiedValueShape [
-        sh:property [
-          sh:path vc:credentialSubject;
-          sh:node [
-            sh:property [
-              sh:path ex:employer;
-              sh:hasValue ex:CompanyXYZ;
-            ]
-          ]
-        ]
-      ];
-      sh:qualifiedMinCount 1;
-      sh:message "Needs an employment credential from CompanyXYZ.";
-    ];
-  ].
-            </pre>
-            <p><strong>Explanation:</strong> In this shape, we placed two separate <code>sh:property</code> constraints on the AccessRequest's <code>shpl:credential</code>: The first one looks for a credential that has <code>ex:clearanceLevel "5"</code> in its subject and that the credential's issuer is the SecurityAgency. The second one looks for a credential that has <code>ex:employer CompanyXYZ</code> in its subject. Each uses <code>qualifiedValueShape</code>/<code>qualifiedMinCount 1</code> to mean "at least one credential meets this pattern". Both of these property constraints must be satisfied simultaneously on the AccessRequest for the NodeShape to validate (SHACL by default has an implicit AND for multiple top-level constraints in a shape). That means the user must supply at least one credential of each type.</p>
-        </section>
-    </section>
-
-    <section id="appendix-vocabulary" class="appendix">
-      <h2>RDF/Turtle Vocabulary</h2>
-      <p>
-        Below is an illustrative Turtle serialization of the SHACL Policy Language vocabulary. It defines the primary classes and properties introduced in this specification. This is provided for reference and as a starting point for implementations. Prefix <code>shpl:</code> is assumed to resolve to the official namespace of SHACL Policy Language (which might be a w3id or similar persistent URI).
-      </p>
-      <pre class="nohighlight">
-@prefix shpl: &lt;https://w3id.org/shacl-policy-language#&gt; .
-@prefix rdf: &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#&gt; .
-@prefix rdfs: &lt;http://www.w3.org/2000/01/rdf-schema#&gt; .
-@prefix sh: &lt;http://www.w3.org/ns/shacl#&gt; .
+@prefix odrl: &lt;http://www.w3.org/ns/odrl/2/&gt; .
+@prefix sh:   &lt;http://www.w3.org/ns/shacl#&gt; .
 @prefix cred: &lt;https://www.w3.org/2018/credentials#&gt; .
+@prefix ex:   &lt;http://example.com/ns#&gt; .
 
-# Classes
-shpl:Policy a rdfs:Class;
-  rdfs:label "Policy";
-  rdfs:comment "An access control policy rule, linking a condition to an allow or deny effect for a given action on a resource.".
+&lt;&gt; a shpl:Policy ;
+   shpl:profile shpl:Core ;
+   shpl:specVersion &lt;https://w3id.org/shacl-policy-language/spec/v0.3.0&gt; ;
+   shpl:conflictStrategy shpl:DenyOverrides .
 
-shpl:AllowPolicy a rdfs:Class;
-  rdfs:subClassOf shpl:Policy;
-  rdfs:label "AllowPolicy";
-  rdfs:comment "A policy that grants permission if its condition is satisfied. Subclass of Policy.".
+ex:AdultRead a shpl:Rule ;
+   shpl:effect shpl:Permit ;
+   shpl:target ex:AdultOnly ;
+   shpl:action odrl:read ;
+   shpl:condition [
+     a sh:NodeShape ;
+     sh:property [
+       sh:path shpl:credential ;
+       sh:qualifiedValueShape [
+         a sh:NodeShape ;
+         sh:property [
+           sh:path cred:credentialSubject ;
+           sh:node [ sh:property [ sh:path ex:age ; sh:minInclusive 18 ] ]
+         ]
+       ] ;
+       sh:qualifiedMinCount 1
+     ]
+   ] ;
+   shpl:duty [
+     a shpl:Duty ;
+     shpl:triggersOn shpl:OnRuleApplied ;
+     shpl:timing shpl:Postcondition ;
+     sh:rule [
+       a sh:TripleRule ;
+       sh:subject sh:this ;
+       sh:predicate ex:auditSink ;
+       sh:object &lt;https://example.com/audit&gt;
+     ]
+   ] .
+</pre>
 
-shpl:DenyPolicy a rdfs:Class;
-  rdfs:subClassOf shpl:Policy;
-  rdfs:label "DenyPolicy";
-  rdfs:comment "A policy that enforces a denial if its condition is satisfied. Subclass of Policy.".
+<pre class="example nohighlight" title="Access request">
+ex:Req1 a shpl:AccessRequest ;
+  shpl:agent &lt;did:example:alice&gt; ;
+  shpl:action odrl:read ;
+  shpl:target ex:AdultOnly ;
+  shpl:credential ex:AliceAgeVC .
+</pre>
 
-shpl:AccessRequest a rdfs:Class;
-  rdfs:label "AccessRequest";
-  rdfs:comment "A class representing an access request context (agent, action, resource, credentials) used for policy evaluation.".
+<pre class="example nohighlight" title="Decision graph">
+ex:Dec1 a shpl:Decision ;
+  shpl:outcome shpl:Permit ;
+  shpl:appliedRule ex:AdultRead ;
+  shpl:obligation [
+    a shpl:Obligation ;
+    shpl:fromRule ex:AdultRead ;
+    shpl:timing shpl:Postcondition ;
+    shpl:state shpl:ObligationPending ;
+    ex:auditSink &lt;https://example.com/audit&gt;
+  ] ;
+  shpl:requestRef ex:Req1 .
+</pre>
 
-shpl:Action a rdfs:Class;
-  rdfs:label "Action";
-  rdfs:comment "Class of actions that can be performed on resources (e.g., Read, Write). Used to categorize the shpl:action property values.".
+<p><strong>What SPL adds on top of raw SHACL:</strong> rule effects, applicability wiring (target + action + optional action closure), policy-level conflict strategies, <a data-lt="Duty">duty</a> attachment through <code>shpl:duty</code>, obligations materialized through SHACL rules, a split negative outcome model (<code>shpl:NotMatched</code> vs <code>shpl:NotSatisfied</code>), and a normative <a>Decision graph</a>. That division of labor is summarized under <a href="#goals-rationale">Design rationale</a>.</p>
+</section>
 
-# Properties
-shpl:target a rdf:Property;
-  rdfs:label "target";
-  rdfs:domain shpl:Policy;
-  rdfs:range rdfs:Resource;
-  rdfs:comment "Indicates the resource (or class of resources) to which a Policy applies. On AccessRequest, it indicates the resource being accessed.".
+<section id="intro-shacl">
+<h3>Relationship to SHACL 1.2</h3>
+<p>SPL is not a separate constraint language: that is the main rationale for a SHACL-only condition model (see <a href="#goals">Goals and background</a>). Everything under <code>shpl:condition</code> is evaluated by a SHACL 1.2 engine. Contextual values (time, counters, purpose) use <strong>SHACL 1.2 node expressions</strong> per [[SHACL12-NODE]]. Named hooks such as <code>shpl:currentDateTime</code> are registered in the SPL vocabulary; profiles MAY add more.</p>
+</section>
 
-shpl:action a rdf:Property;
-  rdfs:label "action";
-  rdfs:range shpl:Action;
-  rdfs:comment "Indicates the action governed by a Policy, or the action being attempted in an AccessRequest. Uses individuals of class shpl:Action (or other action IRIs).".
+<section id="intro-odrl">
+<h3>Relationship to ODRL</h3>
+<p>ODRL [[ODRL]] provides the <strong>permission</strong>, <strong>prohibition</strong>, <strong>duty</strong>, <strong>asset</strong>, and <strong>action</strong> information model and the recommended action IRIs. SPL reuses those concepts for interoperability while keeping conditions in SHACL (see <a href="#goals">Goals and background</a>). SPL maps constructs to SHACL-backed rules and requests as summarized in <a href="#appendix-odrl">Appendix A</a> and <a href="#conceptual-alignment">Conceptual alignment</a>. SPL does not reimplement ODRL negotiation or legal prose; it standardizes SHACL-backed evaluation and Decision graphs.</p>
+</section>
 
-shpl:condition a rdf:Property;
-  rdfs:label "condition";
-  rdfs:domain shpl:Policy;
-  rdfs:range sh:NodeShape;
-  rdfs:comment "Links a Policy to a SHACL NodeShape that represents the access condition to evaluate.".
+<section id="companion-profiles" class="informative">
+<h3>Companion profiles (non-normative)</h3>
+<p>The following concerns are intentionally <strong>not</strong> in SPL v0.3 core. Each SHOULD be specified in a separate profile or external specification so the core document stays focused on evaluation and decision graphs:</p>
+<ul>
+<li>HTTP or other API bindings for requests and decisions</li>
+<li>Data Integrity proofs on decisions, replay-protection tokens, upstream PDP decisions</li>
+<li>Trust registry graphs and federation wire formats</li>
+<li>ODRL-style policy negotiation lifecycle, ordered rule sets, policy inheritance, and merge algorithms</li>
+<li>Compact authoring syntax expanded before validation</li>
+</ul>
+<p>Reserved profile document IRIs (placeholders; content may be editor drafts):</p>
+<ul>
+<li><code>https://w3id.org/shacl-policy-language/profile/federation-wire</code> &mdash; Federation and Wire Profile (HTTP, signing, upstream decisions, replay protection).</li>
+<li><code>https://w3id.org/shacl-policy-language/profile/negotiation</code> &mdash; Negotiation Profile (ODRL Offer/Request/Agreement lifecycle).</li>
+<li><code>https://w3id.org/shacl-policy-language/profile/zk-safe</code> &mdash; Zero-knowledge (ZK)-safe evaluation patterns.</li>
+<li><code>https://w3id.org/shacl-policy-language/profile/compact-authoring</code> &mdash; Compact authoring syntax expanded before core validation.</li>
+<li id="profile-conformance-tests"><code>https://w3id.org/shacl-policy-language/profile/conformance-tests</code> &mdash; Conformance test runner protocol (canonicalization, deterministic hooks).</li>
+<li><code>https://w3id.org/shacl-policy-language/profile/inheritance</code> &mdash; Optional policy reuse and merge semantics.</li>
+</ul>
+</section>
 
-shpl:agent a rdf:Property;
-  rdfs:label "agent";
-  rdfs:domain shpl:AccessRequest;
-  rdfs:comment "The agent (e.g., user or entity identifier) making the access request.".
+<section id="pattern-reuse" class="informative">
+<h3>Vocabulary reuse</h3>
+<p>SPL prefers to reuse established W3C and community vocabularies wherever they cover a need, defining new <code>shpl:</code> terms only for concepts specific to semantic policy evaluation and the decision lifecycle.</p>
+<p>Where alignment is semantics-preserving, <code>spl.ttl</code> asserts links to established vocabularies. Closed wire value sets are declared with Web Ontology Language (OWL) <code>owl:oneOf</code>; open explanation vocabularies use SKOS concept schemes so profiles can extend them without changing core validation.</p>
+<table>
+<thead><tr><th>Topic</th><th>Prefer</th><th>Rationale</th></tr></thead>
+<tbody>
+<tr><td>Conditions</td><td>SHACL 1.2 shapes, rules, and node expressions</td><td>No parallel constraint or invocation language.</td></tr>
+<tr><td>Architecture</td><td>Policy Decision Point, Policy Enforcement Point, Policy Information Point, Policy Administration Point [[XACML30]]</td><td>Same component names as the XACML reference architecture.</td></tr>
+<tr><td>Actions</td><td>ODRL action IRIs and declared action vocabulary graphs</td><td>Keeps action closure deterministic and externally reviewable.</td></tr>
+<tr><td>Decision reasons</td><td>SKOS concept scheme</td><td>Core publishes a reason scheme, while profiles can mint additional concepts.</td></tr>
+<tr><td>SPL policy and profile conformance</td><td><code>dct:conformsTo</code>, Dataset Exchange Working Group (DXWG) Profiles Vocabulary, DCAT where applicable</td><td>Interoperates with catalog and validation tooling.</td></tr>
+<tr><td>Provenance</td><td>PROV-O and Dublin Core</td><td><code>shpl:fromRule</code> is aligned with derivation; profiles may add full PROV activities.</td></tr>
+<tr><td>Temporal and spatial data</td><td>OWL-Time, GeoSPARQL, or pure SHACL comparators</td><td>Avoids domain-specific operator IRIs in SPL core.</td></tr>
+</tbody>
+</table>
 
-shpl:credential a rdf:Property;
-  rdfs:label "credential";
-  rdfs:domain shpl:AccessRequest;
-  rdfs:comment "A verifiable credential presented as part of the access request. Typically of type cred:VerifiableCredential with associated claims.".
+<section id="naming-hints" class="informative">
+<h4>Naming and plain-language shortcuts</h4>
+<p>Outside normative definitions, authors and reviewers MAY use shorter phrases that refer to the same RDF structures:</p>
+<table>
+<thead><tr><th>Formal / RDF</th><th>Plain language</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td><a>Access request graph</a></td><td>request graph</td><td>One <code>shpl:AccessRequest</code> plus credentials and deployment triples used as SHACL data.</td></tr>
+<tr><td><a>Decision graph</a></td><td>decision graph</td><td>One <code>shpl:Decision</code> and its triples (outcome, reasons, obligations, etc.).</td></tr>
+<tr><td><a>SPL policy</a></td><td>policy</td><td>Use when it is clear you mean an RDF <code>shpl:Policy</code>, not ODRL negotiation artifacts.</td></tr>
+<tr><td><a>Rule condition</a></td><td>condition</td><td>The optional <code>sh:NodeShape</code> at <code>shpl:condition</code>.</td></tr>
+<tr><td><code>shpl:Duty</code> vs <code>shpl:Obligation</code></td><td>duty vs obligation</td><td><strong>Duty</strong> = policy-side specification (like ODRL <code>odrl:Duty</code>); <strong>Obligation</strong> = node on a <code>shpl:Decision</code> for the PEP (XACML sense).</td></tr>
+<tr><td><code>spl-spl.ttl</code> (Appendix B)</td><td>SPL meta-shapes / SPL-SPL</td><td>SHACL shapes that validate SPL policies and related resources; the name is historical.</td></tr>
+</tbody>
+</table>
+<p>Further simplifications of <strong>IRIs</strong> are possible in a future major version if implementers agree on migration; they are not required for v0.3 interoperability.</p>
+</section>
+</section>
+<section id="conceptual-alignment" class="informative">
+<h3>Conceptual alignment</h3>
+<p>This section is <strong>informative</strong>. It relates SPL to the access-control reference model in [[XACML30]] and to attribute categories in [[NIST-SP-800-162]] so implementers can map SPL artifacts to familiar security architecture without changing the normative rules in <a href="#evaluation">Evaluation semantics</a> and <a href="#vocabulary">Vocabulary</a>.</p>
 
-# Common action individuals
-shpl:Read a shpl:Action;
-  rdfs:label "Read";
-  rdfs:comment "Represents a 'read' action (view or retrieve a resource).".
+<section id="ca-reference-architecture">
+<h4>Reference architecture (XACML)</h4>
+<p>The following uses the same component names and relationships as the reference architecture for the eXtensible Access Control Markup Language [[XACML30]]:</p>
+<ul>
+<li><strong>Policy Administration Point (PAP)</strong> &mdash; authors, version-controls, or distributes <code>shpl:Policy</code> graphs.</li>
+<li><strong>Policy Decision Point (PDP)</strong> &mdash; evaluates applicable policy against an access request and produces a <code>shpl:Decision</code> (authorization decision plus any returned <strong>obligations</strong> in the XACML sense).</li>
+<li><strong>Policy Enforcement Point (PEP)</strong> &mdash; constructs or forwards the <code>shpl:AccessRequest</code>, invokes the PDP, enforces <code>shpl:outcome</code> (<code>shpl:Permit</code> / <code>shpl:Deny</code> and default-deny handling for <code>shpl:NotMatched</code> / <code>shpl:NotSatisfied</code> per <a href="#req-negative-default-deny">default deny at the enforcement boundary</a>), and fulfills obligations by advancing <code>shpl:state</code> on each <code>shpl:Obligation</code>.</li>
+<li><strong>Policy Information Point (PIP)</strong> &mdash; supplies attribute values the PDP needs when they are not already present in the request graph, in particular for <a href="#hooks">environmental or external hooks</a>.</li>
+</ul>
+<p>Wire protocols for carrying requests and decisions (for example authorization frameworks built on Hypertext Transfer Protocol) are out of scope for SPL core; they belong in companion profiles and are orthogonal to this decision model, in the same way that transport is orthogonal to the XACML reference architecture [[XACML30]].</p>
+</section>
 
-shpl:Write a shpl:Action;
-  rdfs:label "Write";
-  rdfs:comment "Represents a 'write' action (modify or create a resource).".
-      </pre>
-      <p>Note: In the above, <code>shpl:target</code> and <code>shpl:action</code> are given a domain of <code>shpl:Policy</code> for clarity, but as discussed, <code>shpl:action</code> is also used on <code>shpl:AccessRequest</code>. RDFS domain is not a strict constraint in RDF semantics (it doesn't prevent other usage), but an implementation can understand that <code>shpl:action</code> on an AccessRequest is the attempted action. If desired, one could extend the vocabulary to have separate properties or use the same with an understanding of context.</p>
-      <p>This Turtle file does not include every possible detail (e.g., it does not formalize that an AllowPolicy's effect is permit—that is procedural, not easily captured in RDFS/OWL alone). It is meant to provide the building blocks. Implementers can load this vocabulary to get the terms and then use SHACL shapes (the policy conditions) and code (for the evaluation algorithm) to complete the system behavior.</p>
-    </section>
+<section id="ca-abac-attributes">
+<h4>Attribute categories (ABAC)</h4>
+<p>[[NIST-SP-800-162]] groups data used in ABAC decisions into <strong>subject</strong>, <strong>resource</strong>, <strong>action</strong>, and <strong>environment</strong> attribute categories. In SPL v0.3 the <a>Access request graph</a> plays the role of the attribute context presented for evaluation:</p>
+<table>
+<thead><tr><th>ABAC category [[NIST-SP-800-162]]</th><th>Primary SPL v0.3 carriers</th></tr></thead>
+<tbody>
+<tr><td>Subject</td><td><code>shpl:agent</code> and claims in <code>shpl:credential</code> / <code>cred:credentialSubject</code> validated by <code>shpl:condition</code></td></tr>
+<tr><td>Resource</td><td><code>shpl:target</code> (the governed resource; see <a href="#voc-rule">Policy and rules</a> for alignment with <code>odrl:Asset</code> in [[ODRL]])</td></tr>
+<tr><td>Action</td><td><code>shpl:action</code> (IRIs from the ODRL action vocabulary [[ODRL]] are recommended)</td></tr>
+<tr><td>Environment</td><td>Deployment-supplied triples in the <a>Access request graph</a>, if any, plus values bound for <a href="#hooks">node expression hooks</a> (for example <code>shpl:currentDateTime</code>)</td></tr>
+</tbody>
+</table>
+<p>All constraint logic over those attributes remains SHACL [[SHACL12-CORE]] on the <a>Access request graph</a> as described in <a href="#conditions">Conditions</a>.</p>
+</section>
+
+<section id="ca-decisions-combining">
+<h4>Decisions and rule combining</h4>
+<p>[[XACML30]] defines authorization <strong>decisions</strong> including <em>Permit</em>, <em>Deny</em>, and <em>Indeterminate</em>, and defines <strong>rule-combining algorithms</strong> and <strong>policy-combining algorithms</strong> for aggregating multiple evaluated rules. SPL maps as follows (SPL terms are RDF individuals on <code>shpl:Decision</code> / per-rule classification in <a href="#evaluation">Evaluation semantics</a>):</p>
+<table>
+<thead><tr><th>XACML decision [[XACML30]]</th><th>SPL <code>shpl:outcome</code></th><th>Note</th></tr></thead>
+<tbody>
+<tr><td><em>Permit</em></td><td><code>shpl:Permit</code></td><td>Same access result label is reused on rules as <code>shpl:effect</code> where applicable.</td></tr>
+<tr><td><em>Deny</em></td><td><code>shpl:Deny</code></td><td>Idem for <code>shpl:effect</code>.</td></tr>
+<tr><td><em>Indeterminate</em></td><td><code>shpl:Indeterminate</code></td><td>Use <code>shpl:reason</code> for a machine-readable cause.</td></tr>
+<tr><td><em>NotApplicable</em> (no applicable policy)</td><td><code>shpl:NotMatched</code></td><td>No rule's target and action matched the request.</td></tr>
+<tr><td>&mdash;</td><td><code>shpl:NotSatisfied</code></td><td>Target and action matched at least one rule, but no satisfied Permit/Deny rule decided access; typically a violated <code>shpl:condition</code>. This refines &ldquo;no applicable positive decision&rdquo; using SHACL's pass/fail outcome.</td></tr>
+</tbody>
+</table>
+<p>For combining, <code>shpl:DenyOverrides</code> and <code>shpl:PermitOverrides</code> are the deny-overrides and permit-overrides strategies described in [[XACML30]] for merging rule or policy effects. Optional <code>shpl:detectConflicts</code> detects a Permit/Deny conflict and yields <code>shpl:Indeterminate</code> before applying the strategy. Other combining algorithms in [[XACML30]] are not in SPL v0.3 core and MAY be introduced by profiles.</p>
+<p>[[XACML30]] also distinguishes <strong>obligations</strong> (enforceable by the PEP) from <strong>advice</strong> (non-normative hints). SPL core represents obligations on a <code>shpl:Decision</code> as <code>shpl:Obligation</code> nodes linked via <code>shpl:obligation</code>; it does not define an advice class.</p>
+</section>
+
+</section>
+
+</section>
+
+<section id="terminology">
+<h2>Terminology</h2>
+<dl>
+<dt><dfn class="export">Policy Decision Point (PDP)</dfn></dt><dd>As in [[XACML30]]: the entity that evaluates policy and returns an authorization decision. In SPL it evaluates rules and emits a <code>shpl:Decision</code>.</dd>
+<dt><dfn class="export">Policy Enforcement Point (PEP)</dfn></dt><dd>As in [[XACML30]]: the entity that enforces the decision. In SPL it enforces <code>shpl:outcome</code> and fulfills obligations (nodes of type <code>shpl:Obligation</code>) linked from the <code>shpl:Decision</code>.</dd>
+<dt><dfn class="export">Policy Information Point (PIP)</dfn></dt><dd>As in [[XACML30]]: the entity that provides attribute values to the PDP. In SPL it supplies values for hooks when they are not already present in the <a>Access request graph</a>.</dd>
+<dt><dfn class="export">Policy Administration Point (PAP)</dfn></dt><dd>As in [[XACML30]]: the entity that manages policies. In SPL it authors or distributes <a data-lt="SPL policy">SPL policies</a> as <code>shpl:Policy</code> graphs.</dd>
+<dt><dfn>SPL policy</dfn></dt><dd>An RDF resource typed <code>shpl:Policy</code> that carries one or more <code>shpl:Rule</code> resources for evaluation.</dd>
+<dt><dfn>Access request graph</dfn></dt><dd>The RDF graph describing one <code>shpl:AccessRequest</code> and its attached credential nodes, used as data for SHACL evaluation. It is the <strong>attribute context</strong> presented to the PDP in the ABAC sense [[NIST-SP-800-162]].</dd>
+<dt><dfn>Decision graph</dfn></dt><dd>The RDF graph describing one <code>shpl:Decision</code>, including the <strong>authorization decision</strong> (<code>shpl:outcome</code>), reasons, optional obligations, and a reference back to the request [[XACML30]].</dd>
+<dt><dfn>Rule condition</dfn></dt><dd>The optional <code>sh:NodeShape</code> value of <code>shpl:condition</code> on a rule; evaluated against an <a>Access request graph</a>.</dd>
+<dt><dfn>focus node</dfn></dt><dd>Per [[SHACL12-CORE]], the RDF term validated by a shape. For each rule's <code>shpl:condition</code>, the focus node is the <code>shpl:AccessRequest</code> being decided (see <a href="#req-condition-focus">SHACL focus node for conditions</a>).</dd>
+<dt><dfn>Execution profile</dfn></dt><dd><code>shpl:Core</code> or <code>shpl:Full</code>; declares which SHACL 1.2 facilities are in play.</dd>
+<dt><dfn>Domain profile</dfn></dt><dd>A <code>shpl:Profile</code> referenced by <code>shpl:conformsToProfile</code> that declares extra <a data-lt="Capability">capabilities</a>, shapes, or vocabularies beyond core SPL.</dd>
+<dt><dfn>Capability</dfn></dt><dd>An IRI naming an optional language or processor feature that SPL policies may require and PDPs may advertise.</dd>
+<dt><dfn>Duty</dfn></dt><dd>In [[ODRL]], a <strong>duty</strong> is an obligation on a permission or party. In SPL, the same idea is a <code>shpl:Duty</code> attached with <code>shpl:duty</code>, with a trigger and SHACL rules that emit payload triples (see <a href="#appendix-odrl">Appendix A</a>).</dd>
+</dl>
+</section>
+
+<section id="conformance" class="normative">
+<h2>Conformance</h2>
+<p>The key words MAY, MUST, MUST NOT, OPTIONAL, RECOMMENDED, REQUIRED, SHALL, and SHOULD are to be interpreted as described in BCP&nbsp;14 [[RFC2119]] [[RFC8174]] when, and only when, they appear in all capitals in this specification.</p>
+<p>Conformance is expressed in terms of <strong>SPL policy graphs</strong> (see <a href="#conformance-classes">Conformance classes</a>) that validate to SPL-SPL, <strong>execution profiles</strong> (<a>SPL-Core</a> versus <a>SPL-Full</a>), and <strong>processors</strong> (PDPs that implement evaluation and <a>Decision graph</a> output as specified below).</p>
+
+<section id="conformance-classes">
+<h3>Conformance classes</h3>
+<p>The following conformance classes are <strong>normative</strong>. A product MAY claim conformance to one or more classes independently.</p>
+<table>
+<thead><tr><th>Class</th><th>Definition</th><th>Normative requirements</th></tr></thead>
+<tbody>
+<tr><td><strong>SPL policy graph</strong> (document)</td><td>An RDF graph (or graph set) whose root policy resource is typed <code>shpl:Policy</code> and that is intended for interchange or validation.</td><td>MUST satisfy <a href="#conformance-doc">Document conformance</a> and declare an <a>Execution profile</a> consistent with the SHACL constructs used.</td></tr>
+<tr><td><strong>SPL PDP</strong> (processor)</td><td>A Policy Decision Point implementation that evaluates <a data-lt="SPL policy">SPL policies</a> against <code>shpl:AccessRequest</code> graphs.</td><td>MUST satisfy <a href="#conformance-pdp">Processor (PDP) conformance</a>, <a href="#evaluation">Evaluation semantics</a>, <a href="#hooks">Node expression hooks</a> (for hooks it implements), <a href="#holder-binding">Holder binding</a>, and <a href="#vc">Verifiable Credentials</a> as applicable.</td></tr>
+<tr><td><strong>SPL test processor</strong></td><td>A test harness or continuous-integration runner that claims to verify SPL behavior.</td><td>MUST satisfy the minima in <a href="#appendix-tests">Appendix D</a> for any test it reports as “SPL v0.3 conformant”.</td></tr>
+</tbody>
+</table>
+<p class="note" title="PEP and PAP">Policy Enforcement Points, Policy Administration Points, and Policy Information Points are <strong>not</strong> separate SPL conformance classes in v0.3; their obligations are architectural (see <a href="#conceptual-alignment">Conceptual alignment</a>) and MAY be constrained by companion profiles.</p>
+</section>
+<section id="conformance-profiles">
+<h3>Execution profiles</h3>
+<p><dfn class="export">SPL-Core</dfn> uses only SHACL 1.2 Core, Rules, and Node Expressions. <dfn class="export">SPL-Full</dfn> additionally allows SHACL SPARQL Extensions.</p>
+<p class="req" id="req-profile">Each <a data-lt="SPL policy">SPL policy</a> MUST declare exactly one <code>shpl:profile</code> with value <code>shpl:Core</code> or <code>shpl:Full</code>.</p>
+<p class="req" id="req-core-sparql">SPL-Core policies MUST NOT use SHACL constructs whose semantics depends on SPARQL Extensions.</p>
+</section>
+<section id="conformance-doc">
+<h3>Document conformance</h3>
+<p class="req" id="req-spl-spl">A conformant <a data-lt="SPL policy">SPL policy</a> MUST validate against the SPL-SPL shapes graph in <a href="#appendix-spl-spl">Appendix B</a> plus any <code>shpl:profileShapesGraph</code> from declared <a data-lt="Domain profile">domain profiles</a>.</p>
+<p class="req" id="req-spec-version">Each SPL policy MUST declare exactly one <code>shpl:specVersion</code> IRI.</p>
+</section>
+<section id="conformance-pdp">
+<h3>Processor (PDP) conformance</h3>
+<p>A conformant PDP MUST: evaluate <code>shpl:condition</code> with SHACL 1.2; classify each <code>shpl:Rule</code> per <a href="#evaluation">Evaluation semantics</a>; apply <code>shpl:detectConflicts</code> and the SPL policy’s <code>shpl:conflictStrategy</code> (default <code>shpl:DenyOverrides</code>); verify credentials before they influence a satisfied <code>shpl:Permit</code> or a satisfied <code>shpl:Deny</code> whose <a>Rule condition</a> depends on credential-derived triples (see <a href="#credential-verification">Credential verification and holder binding</a>); enforce holder binding per <a href="#holder-binding">Holder binding</a>; honor <code>shpl:dryRun</code>; materialize <a data-lt="Duty">duties</a> from SHACL rules; and return a <a>Decision graph</a> conforming to <a href="#decision">AccessRequest and Decision</a>.</p>
+<p class="req" id="req-capability-descriptor">A conformant PDP SHOULD publish a <code>shpl:CapabilityDescriptor</code> (see <a href="#voc-capability">Capability descriptor</a>) at an IRI documented by the deployment. When a descriptor is published, it MUST validate against <code>shpl:CapabilityDescriptorShape</code> in <a href="#appendix-spl-spl">Appendix B</a>. How clients discover that IRI is specified by companion profiles, not by this core document.</p>
+<p class="req" id="req-no-descriptor-conservative">When a PDP does not publish a capability descriptor, clients MUST assume it supports only the minimum <a>SPL-Core</a> feature set implied by this specification; every <code>shpl:requiredCapability</code> IRI in an <a data-lt="SPL policy">SPL policy</a> MUST be treated as an unsupported <a>Capability</a> unless otherwise proven out-of-band.</p>
+</section>
+</section>
+
+<section id="vocabulary" class="normative">
+<h2>Vocabulary</h2>
+<p>This section normatively defines the shape and meaning of core <code>shpl:</code> terms. For motivation and scope, see <a href="#goals">Goals and background</a>; for defined words such as PDP and PEP, see <a href="#terminology">Terminology</a>.</p>
+<p>Namespace <code>https://w3id.org/shacl-policy-language#</code> (<code>shpl:</code>). Canonical Turtle: <a href="https://w3id.org/shacl-policy-language/spl.ttl"><code>spl.ttl</code></a>.</p>
+
+<section id="voc-rule">
+<h3>Policy and rules</h3>
+<dl>
+<dt><code>shpl:Policy</code></dt><dd>Carries exactly one <code>shpl:profile</code>, exactly one <code>shpl:specVersion</code>, optional <code>shpl:conformsToProfile</code>, <code>shpl:requiredCapability</code> (each value names a required <a>Capability</a>), <code>shpl:conflictStrategy</code>, <code>shpl:detectConflicts</code>, and <code>shpl:usesActionVocabulary</code>.</dd>
+<dt><code>shpl:Rule</code></dt><dd>The single rule class in core. A rule has an <code>shpl:effect</code>, target, action, optional SHACL condition, and optional attached <a data-lt="Duty">duties</a> through <code>shpl:duty</code>.</dd>
+<dt><code>shpl:effect</code></dt><dd>Exactly one of <code>shpl:Permit</code>, <code>shpl:Deny</code>, or <code>shpl:Obligate</code>. <code>Permit</code> and <code>Deny</code> contribute access decisions. <code>Obligate</code> materializes obligations but does not grant access by itself.</dd>
+<dt><code>shpl:target</code></dt><dd>One or more IRIs naming the governed <strong>resource</strong> (class membership or <code>shpl:AssetCollection</code> allowed). In [[ODRL]] terms the same notion is an <strong>asset</strong>; authors SHOULD ensure targets can be understood as <code>odrl:Asset</code> where interoperability with ODRL tools matters.</dd>
+<dt><code>shpl:action</code></dt><dd>Exactly one action IRI, with ODRL recommended.</dd>
+<dt><code>shpl:condition</code></dt><dd>Optional <code>sh:NodeShape</code> defining the <a>Rule condition</a>. If absent, condition evaluation is satisfied when target and action match.</dd>
+<dt><code>shpl:duty</code></dt><dd>Optional authoring-time link from a rule, or from another <a data-lt="Duty">duty</a>, to a <code>shpl:Duty</code> specification.</dd>
+<dt><code>shpl:usesActionVocabulary</code></dt><dd>Declares vocabulary graph IRIs whose action-closure triples are in scope for evaluation.</dd>
+</dl>
+</section>
+
+<section id="voc-duty">
+<h3>Duties and obligations</h3>
+<p><code>shpl:duty</code> is the authoring-time link from a rule or <a data-lt="Duty">duty</a> to a <code>shpl:Duty</code> specification. <code>shpl:obligation</code> links a <code>shpl:Decision</code> to obligation nodes (<code>a shpl:Obligation</code>). This separation keeps <a data-lt="Duty">duty</a> specifications (policy) and obligations (decision output) distinct, as with obligations on an authorization decision in [[XACML30]]; see <a href="#conceptual-alignment">Conceptual alignment</a> for obligations versus <strong>advice</strong>.</p>
+<p><code>shpl:Duty</code> is a <a>Duty</a> specification. Each <a data-lt="Duty">duty</a> MUST declare exactly one <code>shpl:triggersOn</code> value:</p>
+<ul>
+<li><code>shpl:OnRuleApplied</code> &mdash; materialize when the attached rule is satisfied and its effect realizes.</li>
+<li><code>shpl:OnRuleViolated</code> &mdash; materialize as breach-response output when the attached satisfied rule contributes <code>shpl:Deny</code>.</li>
+<li><code>shpl:OnObligationFailed</code> &mdash; materialize when a parent obligation reaches <code>shpl:ObligationFailed</code>.</li>
+</ul>
+<p><code>shpl:timing</code> is <code>shpl:Precondition</code> or <code>shpl:Postcondition</code>. The same property is used on a <code>shpl:Duty</code> and on each <code>shpl:Obligation</code> node in the Decision.</p>
+<p><dfn class="export">Obligation state</dfn> on each <code>shpl:Obligation</code> node: <code>shpl:ObligationPending</code>, <code>shpl:ObligationInProgress</code>, <code>shpl:ObligationSatisfied</code>, <code>shpl:ObligationFailed</code>, <code>shpl:ObligationCompensated</code>. The PEP advances <a data-lt="Obligation state">obligation states</a> as it enforces side effects. A <a data-lt="Duty">duty</a> attached to another <a data-lt="Duty">duty</a> with trigger <code>shpl:OnObligationFailed</code> is evaluated when the parent obligation fails.</p>
+<p class="req" id="req-duty-shacl-rule">Core <a data-lt="Duty">duties</a> MUST emit obligation payload triples using SHACL <code>sh:rule</code>. Compact direct predicates and domain-specific obligation verbs are companion-profile terms, not core vocabulary.</p>
+</section>
+
+<section id="voc-request-decision">
+<h3 id="decision">AccessRequest and Decision</h3>
+<dl>
+<dt><code>shpl:AccessRequest</code></dt><dd>Exactly one <code>shpl:agent</code>, <code>shpl:target</code>, and <code>shpl:action</code>; zero or more <code>shpl:credential</code>; optional <code>shpl:dryRun</code> and <code>shpl:explanationLevel</code>. If the client presents a Verifiable Presentation, the PDP MUST expand member credentials into <code>shpl:credential</code> before evaluation.</dd>
+<dt><code>shpl:Decision</code></dt><dd>Exactly one <code>shpl:outcome</code> whose value is a <code>shpl:DecisionOutcome</code> individual (<code>shpl:Permit</code>, <code>shpl:Deny</code>, <code>shpl:NotMatched</code>, <code>shpl:NotSatisfied</code>, or <code>shpl:Indeterminate</code>); exactly one <code>shpl:requestRef</code>; zero or more <code>shpl:reason</code>; zero or more <code>shpl:appliedRule</code>; zero or more <code>shpl:obligation</code> nodes typed <code>shpl:Obligation</code>; optional <code>shpl:explanation</code>.</dd>
+<dt><code>shpl:explanationLevel</code></dt><dd><code>shpl:NoExplanation</code>, <code>shpl:SummaryExplanation</code>, or <code>shpl:FullExplanation</code>.</dd>
+<dt><code>shpl:Core</code> / <code>shpl:Full</code></dt><dd>The only two <code>shpl:ExecutionProfile</code> individuals; values of <code>shpl:profile</code> on a <code>shpl:Policy</code>. Domain extension manifests use <code>shpl:Profile</code>, which is not a superclass of execution profiles.</dd>
+</dl>
+</section>
+
+<section id="voc-combinators">
+<h3>Conflict strategies (core)</h3>
+<p>The v0.3 core defines two conflict strategies: <code>shpl:DenyOverrides</code> (default) and <code>shpl:PermitOverrides</code>. Each is an individual of <code>shpl:ConflictStrategy</code>. These are the deny-overrides and permit-overrides <strong>rule-combining</strong> / <strong>policy-combining</strong> strategies defined in [[XACML30]]; see <a href="#ca-decisions-combining">Decisions and rule combining</a>. An SPL policy MAY set <code>shpl:detectConflicts true</code>; when both Permit and Deny contributions are present, detection yields <code>shpl:Indeterminate</code> with <code>shpl:reason</code> including <code>shpl:Conflict</code> before the override strategy is applied. Strategy metadata such as determinism is descriptive and does not change evaluation outcomes.</p>
+<p class="req" id="req-negative-default-deny">When the <code>shpl:Decision</code> outcome is <code>shpl:NotMatched</code> or <code>shpl:NotSatisfied</code>, the PEP MUST treat the request as denied at the enforcement boundary.</p>
+</section>
+
+<section id="voc-reasons">
+<h3>Decision reasons</h3>
+<p>Decision reasons are SKOS concepts in the open <code>shpl:DecisionReason</code> concept scheme. Core concepts include <code>shpl:Conflict</code>, <code>shpl:UnsupportedFeature</code>, <code>shpl:HolderBindingFailed</code>, <code>shpl:CredentialNotVerified</code>, <code>shpl:NodeExpressionFailed</code>, <code>shpl:CycleDetected</code>, and <code>shpl:RuleIndeterminate</code>. Profiles MAY define additional reason concepts. <code>shpl:reason</code> carries coarse machine-readable tags; optional <code>shpl:explanation</code> carries structured detail such as <code>shpl:missingFeature</code>.</p>
+</section>
+
+<section id="voc-enumerations">
+<h3>Enumerated value classes</h3>
+<p>The ontology declares closed wire enumerations with <code>owl:oneOf</code>: <code>shpl:RuleEffect</code>, <code>shpl:DecisionOutcome</code>, <code>shpl:DutyTiming</code>, <code>shpl:ObligationTrigger</code>, <code>shpl:ObligationState</code>, <code>shpl:ConflictStrategy</code>, <code>shpl:ExplanationLevel</code>, and <code>shpl:ExecutionProfile</code>. Decision reasons are intentionally open SKOS concepts. <code>shpl:Permit</code> and <code>shpl:Deny</code> are reused as both effects and outcomes because they denote the same access result; <code>shpl:Obligate</code> is only a rule effect and MUST NOT appear as <code>shpl:outcome</code>.</p>
+</section>
+
+<section id="voc-stability">
+<h3>Term stability (<code>spl.ttl</code>)</h3>
+<p>Every normative SPL term carries <code>shpl:stability</code> with value <code>shpl:Stable</code> or <code>shpl:Experimental</code>. This is metadata for ontology consumers; it is not evaluated at decision time.</p>
+</section>
+
+<section id="voc-capability">
+<h3>Capability descriptor</h3>
+<p><code>shpl:CapabilityDescriptor</code> is an RDF description of what a PDP deployment implements: its <a>Execution profile</a>, supported specification versions, and optional <code>shpl:processorVersion</code>, <code>shpl:supportedCapability</code>, and <code>shpl:supportedProfile</code> (each <code>shpl:supportedCapability</code> value is a <a>Capability</a> IRI). Subclasses such as <code>shpl:HookCapability</code>, <code>shpl:EvaluationCapability</code>, <code>shpl:ObligationCapability</code>, <code>shpl:ProfileCapability</code>, and <code>shpl:ActionReasoningCapability</code> are for discovery and documentation; support for a given feature is still determined by the advertised <a>Capability</a> IRI.</p>
+</section>
+</section>
+
+<section id="conditions" class="normative">
+<h2>Conditions (SHACL only)</h2>
+<p class="req" id="req-condition-focus">The SHACL <a>focus node</a> for evaluating each rule's <code>shpl:condition</code> is the <code>shpl:AccessRequest</code> being decided (the same resource identified by <code>shpl:requestRef</code> in the eventual <code>shpl:Decision</code>). The <a>Access request graph</a> includes that node, attached credentials, and any deployment-supplied triples the PDP includes for evaluation.</p>
+<p>Authors express requirements exclusively as <code>sh:NodeShape</code> values of <code>shpl:condition</code> (the <a>Rule condition</a>). A rule with no <code>shpl:condition</code> has nothing to validate in step 2 of <a href="#evaluation">Evaluation semantics</a>; the PDP treats that as an immediately satisfied condition once target and action match.</p>
+<p>The canonical pattern for "at least one credential satisfies S" is:</p>
+<pre class="nohighlight">sh:property [
+  sh:path shpl:credential ;
+  sh:qualifiedValueShape [ a sh:NodeShape ; ... ] ;
+  sh:qualifiedMinCount 1
+] .</pre>
+</section>
+
+<section id="hooks" class="normative">
+<h2>Node expression hooks</h2>
+<p>Standard hooks (see <code>spl.ttl</code>): <code>shpl:currentDateTime</code>, <code>shpl:requestCount</code>, <code>shpl:agentLocation</code>, <code>shpl:credentialClaim</code>, <code>shpl:purposeOfUse</code>, <code>shpl:resourceOwner</code>. These IRIs identify hook implementations; their hook-category typing (<code>shpl:PureHook</code>, <code>shpl:RequestScopedHook</code>, <code>shpl:EnvironmentalHook</code>, or <code>shpl:ExternalHook</code>) supports documentation, <a data-lt="Capability">capability</a> discovery, and deterministic profiles.</p>
+
+<h3>Hook evaluation contract</h3>
+<p>Hooks are invoked from SHACL node expressions (and related SHACL facilities) during <a href="#evaluation">Evaluation semantics</a> step 2. A conformant PDP MUST treat hook resolution as part of SHACL validation of the <a>Access request graph</a> (plus policy and vocabulary triples the PDP loads for evaluation).</p>
+<p class="req" id="req-hook-implemented">If evaluation reaches a hook IRI that the PDP does not implement, or that is not advertised in its <code>shpl:CapabilityDescriptor</code> when a descriptor is published, the PDP MUST classify the affected rule as <code>Indeterminate</code> (per-rule result) and SHOULD include <code>shpl:reason</code> <code>shpl:UnsupportedFeature</code> or <code>shpl:NodeExpressionFailed</code> on the <code>shpl:Decision</code> as appropriate.</p>
+<p class="req" id="req-hook-value">If a hook implementation returns no value, an ill-typed literal, or values that violate the shape’s datatype or cardinality expectations, the PDP MUST treat condition evaluation as incomplete for that rule and MUST classify that rule as <code>Indeterminate</code> with <code>shpl:reason</code> including <code>shpl:NodeExpressionFailed</code> unless a companion profile defines a different deterministic error mapping.</p>
+<p class="req" id="req-hook-limits">If hook or SPARQL evaluation exceeds deployment limits (time, memory, result size, recursion depth), the PDP MUST NOT silently substitute a guessed value; it MUST yield <code>shpl:Indeterminate</code> with <code>shpl:reason</code> that includes <code>shpl:UnsupportedFeature</code> or <code>shpl:NodeExpressionFailed</code> (and MAY use <code>shpl:explanation</code> for detail).</p>
+<p>For <code>shpl:dryRun true</code>, environmental and external hooks MUST NOT persist side effects outside the PDP process (for example network callbacks that mutate external state). They MAY still return values required for SHACL evaluation to complete. Companion profiles MAY define stronger dry-run semantics for obligations and enforcement.</p>
+<p class="note" title="Determinism"><code>shpl:PureHook</code> and <code>shpl:RequestScopedHook</code> implementations SHOULD be deterministic given the same <a>Access request graph</a> and policy inputs. <code>shpl:EnvironmentalHook</code> and <code>shpl:ExternalHook</code> MAY vary over time; policies that depend on them SHOULD account for <code>shpl:Indeterminate</code> when values are unavailable.</p>
+
+<p class="note" title="PIP and attribute categories">Values for hooks that read deployment or environment state are typically obtained from a <a href="#terminology">Policy Information Point (PIP)</a> [[XACML30]] when they are not already present as literals or triples in the <a>Access request graph</a>. Such values contribute to <strong>environment</strong> (and, where relevant, <strong>resource</strong> or <strong>subject</strong>) attribute categories in the ABAC sense [[NIST-SP-800-162]]. Which hooks a deployment resolves via a PIP versus pre-materializing into the <a>Access request graph</a> is implementation-defined; the observable SHACL evaluation result MUST still match <a href="#evaluation">Evaluation semantics</a>.</p>
+</section>
+
+<section id="actions" class="normative">
+<h2>Actions</h2>
+<p>Normatively, v0.3 uses <code>shpl:impliedAction</code> (a transitive property, declared <code>owl:inverseOf</code> <code>odrl:includedIn</code>) for broader-than request actions. Applicability: a rule with action <code>A</code> matches request action <code>R</code> if <code>R = A</code> or <code>A shpl:impliedAction+ R</code> over the policy graph plus action vocabulary graphs declared by <code>shpl:usesActionVocabulary</code> and loaded by the PDP for evaluation.</p>
+<p class="note" title="SKOS alternative">Profiles MAY additionally publish the same hierarchy using <code>skos:broader</code> / <code>skos:narrower</code> on action IRIs; that does not replace the normative <code>shpl:impliedAction</code> rule unless a companion profile defines a deterministic mapping.</p>
+</section>
+
+<section id="vc" class="normative">
+<h2>Verifiable Credentials</h2>
+<section id="vc-repr">
+<h3>RDF representation</h3>
+<p>Credentials MUST appear as <code>cred:VerifiableCredential</code> nodes linked from the request via <code>shpl:credential</code>.</p>
+</section>
+<section id="holder-binding">
+<h3>Holder binding</h3>
+<p class="req" id="req-holder">The PDP MUST ensure each <code>cred:VerifiableCredential</code> that is used to justify a <code>shpl:Permit</code> is <strong>bound</strong> to the request's <code>shpl:agent</code> before that credential's claims may satisfy a <a>Rule condition</a>.</p>
+<p>Binding is satisfied when the holder subject identifier equals <code>shpl:agent</code>, where the holder subject identifier is, in order of availability: (1) the credential subject IRI if <code>cred:credentialSubject</code> is an IRI node; (2) the subject's <code>cred:id</code> if present on a blank-node subject; (3) another deployment-chosen stable identifier on the subject node that the PDP documents as equivalent to <code>shpl:agent</code> for binding purposes. If no holder subject identifier can be determined, the credential MUST NOT be used for Permit and the PDP SHOULD emit <code>shpl:Deny</code> or <code>shpl:Indeterminate</code> with <code>shpl:reason</code> including <code>shpl:HolderBindingFailed</code>.</p>
+<p class="note" title="Graph construction vs. validation">Implementations MAY enforce binding by graph construction, by SHACL shapes on <code>shpl:credential</code>, or by an explicit pre-validation step; the mechanism is implementation-defined as long as the observable decision matches this clause.</p>
+<p>Delegation and on-behalf-of flows are deferred to companion profiles.</p>
+</section>
+</section>
+
+<section id="evaluation" class="normative">
+<h2>Evaluation semantics</h2>
+<p>These steps define how a conformant PDP arrives at a <code>shpl:Decision</code> from a <code>shpl:Policy</code> and an <a>Access request graph</a>. They realize the policy evaluation role described under <a href="#goals">Goals and background</a> and <a href="#conceptual-alignment">Conceptual alignment</a>. The ordered list below is the <strong>authoritative evaluation algorithm</strong>; following subsections refine edge cases (credentials, outcomes, indeterminacy, obligations) without replacing those steps.</p>
+<p>Each rule is classified independently. First determine <strong>applicability</strong> (whether the request's resource, action, and target identity match the rule so the rule is in scope for evaluation; the same notion as whether a policy or rule applies in [[XACML30]]). Then, if present, evaluate the <a>Rule condition</a> (SHACL constraints over the attribute context, in the ABAC sense [[NIST-SP-800-162]]). Together they yield a per-rule result:</p>
+<ul>
+<li><code>Permit</code> &mdash; effect <code>shpl:Permit</code>, target/action matched, and condition satisfied.</li>
+<li><code>Deny</code> &mdash; effect <code>shpl:Deny</code>, target/action matched, and condition satisfied.</li>
+<li><code>Obligate</code> &mdash; effect <code>shpl:Obligate</code>, target/action matched, and condition satisfied; this may materialize obligations but does not grant access.</li>
+<li><code>NotMatched</code> &mdash; target/action did not match.</li>
+<li><code>NotSatisfied</code> &mdash; target/action matched, but the SHACL condition was violated.</li>
+<li><code>Indeterminate</code> &mdash; condition or hook evaluation could not complete, or a structural error was detected.</li>
+</ul>
+<ol>
+<li><strong>Applicability</strong> &mdash; A rule is applicable when the request's <code>shpl:target</code> and <code>shpl:action</code> match the rule's target set and action under resource identity, class membership, collection membership, and action-closure rules in <a href="#actions">Actions</a>. If not applicable, the per-rule result is <code>NotMatched</code>.</li>
+<li><strong>Condition evaluation</strong> &mdash; If applicable and <code>shpl:condition</code> is present, run SHACL validation of that <code>sh:NodeShape</code> over the <a>Access request graph</a>. If the shape is violated, the per-rule result is <code>NotSatisfied</code>. If validation cannot complete, the result is <code>Indeterminate</code> with an appropriate reason. If <code>shpl:condition</code> is absent, the condition is satisfied.</li>
+<li><strong>Conflict detection</strong> &mdash; If <code>shpl:detectConflicts true</code> and, among rules classified as satisfied <code>Permit</code> or satisfied <code>Deny</code>, both kinds are present, the PDP yields <code>shpl:Indeterminate</code> with reason <code>shpl:Conflict</code> (before applying the override strategy in step 4).</li>
+<li><strong>Conflict strategy</strong> &mdash; Otherwise, apply the SPL policy's <code>shpl:conflictStrategy</code> to satisfied <code>Permit</code> and satisfied <code>Deny</code> rules (after step 3). Under <code>shpl:DenyOverrides</code>, any satisfied Deny yields <code>shpl:Deny</code>; else any satisfied Permit yields <code>shpl:Permit</code>. Under <code>shpl:PermitOverrides</code>, any satisfied Permit yields <code>shpl:Permit</code>; else any satisfied Deny yields <code>shpl:Deny</code>. If no rule was applicable on target and action, set <code>shpl:outcome</code> to <code>shpl:NotMatched</code>. If at least one rule was applicable but neither a satisfied <code>Permit</code> nor a satisfied <code>Deny</code> is produced for the strategy, set <code>shpl:outcome</code> to <code>shpl:NotSatisfied</code> or <code>shpl:Indeterminate</code> as specified in <a href="#evaluation-outcomes">Access outcome from Permit, Deny, and Obligate</a> and <a href="#evaluation-indeterminate">Indeterminate propagation</a>.</li>
+<li><strong>Obligation materialization</strong> &mdash; Materialize <a data-lt="Duty">duties</a> attached through <code>shpl:duty</code> using their <code>shpl:triggersOn</code> value and their SHACL <code>sh:rule</code> payloads. <a data-lt="Duty">Duties</a> triggered by <code>shpl:OnRuleApplied</code> materialize when the attached rule's effect realizes. <a data-lt="Duty">Duties</a> triggered by <code>shpl:OnRuleViolated</code> materialize from satisfied Deny rules. <a data-lt="Duty">Duties</a> triggered by <code>shpl:OnObligationFailed</code> materialize when the parent obligation fails.</li>
+</ol>
+<p class="req" id="req-obligations-after-conflict">Step 5 runs after steps 1–4 establish the consolidated <code>shpl:outcome</code>. When step 3 yields <code>shpl:Indeterminate</code> with <code>shpl:reason</code> including <code>shpl:Conflict</code>, step 4 does not select <code>shpl:Permit</code> or <code>shpl:Deny</code>, and the PDP MUST NOT materialize <a data-lt="Duty">duties</a> whose <code>shpl:triggersOn</code> is <code>shpl:OnRuleApplied</code> or <code>shpl:OnRuleViolated</code> from rules classified in steps 1–2 as satisfied <code>Permit</code> or satisfied <code>Deny</code> among the set step 3 tested (the conflicting contributors). The PDP MUST still materialize obligations from rules classified as satisfied <code>Obligate</code> in steps 1–2. Nested duties and <code>shpl:OnObligationFailed</code> behavior otherwise follow <a href="#evaluation-obligations-nested">Obligation materialization (multiple and nested duties)</a>.</p>
+
+<h3 id="credential-verification">Credential verification and holder binding</h3>
+<p class="req" id="req-cred-order">Before classifying any rule as a satisfied <code>Permit</code> whose <a>Rule condition</a> depends on triples originating from a <code>shpl:credential</code> value, the PDP MUST complete any <strong>credential verification</strong> steps the deployment associates with that credential (for example cryptographic proof verification, schema checks, and revocation or status checks where applicable). If verification fails for a credential whose claims were needed for that <code>Permit</code>, the PDP MUST NOT classify that rule as satisfied <code>Permit</code>; it SHOULD treat the rule as <code>NotSatisfied</code> for access purposes unless another outcome is required to surface the failure, in which case it MUST use <code>Indeterminate</code> with <code>shpl:reason</code> including <code>shpl:CredentialNotVerified</code>.</p>
+<p class="req" id="req-cred-deny">When a <code>Deny</code> rule's <a>Rule condition</a> depends on triples originating from a <code>shpl:credential</code> value, the PDP MUST complete the same <strong>credential verification</strong> steps the deployment associates with that credential (see <a href="#req-cred-order">Permit credential verification</a>) before classifying that rule as satisfied <code>Deny</code>. If verification fails, the PDP MUST NOT classify that rule as satisfied <code>Deny</code>; it SHOULD treat the rule as <code>NotSatisfied</code> for access purposes or, when the deployment must surface verification failure distinctly, as <code>Indeterminate</code> with <code>shpl:reason</code> including <code>shpl:CredentialNotVerified</code>.</p>
+<p class="note" title="Deterministic comparisons">Deployments that require pairwise-comparable PDP outputs on verification failure SHOULD fix the choice between <code>NotSatisfied</code> and <code>Indeterminate</code> in deployment policy or in a <a href="#companion-profiles">companion profile</a>.</p>
+<p><a href="#holder-binding">Holder binding</a> applies as specified independently of verification: even a verified credential MUST NOT justify <code>Permit</code> unless bound to <code>shpl:agent</code>.</p>
+
+<h3 id="evaluation-outcomes">Access outcome from Permit, Deny, and Obligate</h3>
+<p>Steps 3 and 4 consider only rules whose per-rule classification is satisfied <code>Permit</code> or satisfied <code>Deny</code> (that is, applicable with a satisfied condition, including the vacuous case where no <code>shpl:condition</code> is present). <code>Obligate</code> rules do not set <code>shpl:outcome</code> to <code>shpl:Permit</code> or <code>shpl:Deny</code>; they never supply the Permit or Deny contributions used by conflict detection or override strategies.</p>
+<p>If at least one rule is applicable on target and action but every such rule is either <code>Obligate</code>, <code>NotSatisfied</code>, or <code>Indeterminate</code>, and no satisfied <code>Permit</code> or <code>Deny</code> results, the consolidated <code>shpl:outcome</code> after step 4 is <code>shpl:NotSatisfied</code> unless step 2 already forced <code>shpl:Indeterminate</code> for a rule that blocks completion.</p>
+<p>If no rule is applicable (all <code>NotMatched</code> on target and action), the consolidated outcome is <code>shpl:NotMatched</code>.</p>
+
+<h3 id="evaluation-indeterminate">Indeterminate propagation</h3>
+<p>Let <strong>deciding</strong> mean: a satisfied <code>Deny</code> that fixes <code>shpl:outcome</code> to <code>shpl:Deny</code> under <code>shpl:DenyOverrides</code>, or a satisfied <code>Permit</code> that fixes <code>shpl:outcome</code> to <code>shpl:Permit</code> under <code>shpl:PermitOverrides</code>, per step 4.</p>
+<p>If any applicable rule has per-rule result <code>Indeterminate</code> from step 2 (including from hooks per <a href="#hooks">Node expression hooks</a>), and that indeterminacy prevents establishing whether the rule would contribute a satisfied <code>Permit</code>, <code>Deny</code>, or <code>Obligate</code>, the PDP MUST set <code>shpl:outcome</code> to <code>shpl:Indeterminate</code> unless a companion profile defines a safe fallback that remains conformant with this clause.</p>
+<p>If some rules are <code>Indeterminate</code> but a satisfied <code>Deny</code> is already <strong>deciding</strong> under <code>shpl:DenyOverrides</code>, the outcome remains <code>shpl:Deny</code> and <code>shpl:reason</code> MAY also include reasons associated with indeterminate rules. Symmetrically under <code>shpl:PermitOverrides</code> with a deciding <code>Permit</code>. If neither override side can be resolved because of indeterminate inputs, the outcome is <code>shpl:Indeterminate</code>.</p>
+
+<h3 id="evaluation-obligations-nested">Obligation materialization (multiple and nested duties)</h3>
+<p>The PDP MUST emit distinct <code>shpl:Obligation</code> nodes for each materialized duty instance required by the policy and evaluation result, including multiple duties attached to the same rule. Reusing one obligation node for several independent duties is a violation of this intent and of typical SPL-SPL validation expectations.</p>
+<p>For <code>shpl:duty</code> values nested on a <code>shpl:Duty</code> with <code>shpl:OnObligationFailed</code>, initial access-time evaluation emits obligations for <code>shpl:OnRuleApplied</code> and <code>shpl:OnRuleViolated</code> as above. Materializing nested <code>OnObligationFailed</code> duties against a parent obligation that is not yet failed is out of scope for the initial <code>shpl:Decision</code> unless the <a>Access request graph</a> already includes <code>shpl:Obligation</code> nodes in <code>shpl:ObligationFailed</code> state (for example a re-evaluation call). Companion profiles MAY define how PEP-reported failures trigger a subsequent PDP invocation.</p>
+</section>
+
+<section id="profiles" class="normative">
+<h2>Profiles and extensions</h2>
+<p><code>shpl:ExecutionProfile</code> (<code>shpl:Core</code>, <code>shpl:Full</code>) is declared on the <a data-lt="SPL policy">SPL policy</a> via <code>shpl:profile</code> as its <a>Execution profile</a>. <a data-lt="Domain profile">Domain profiles</a> are <code>shpl:Profile</code> resources referenced by <code>shpl:conformsToProfile</code>, carrying <code>shpl:declaresCapability</code>, <code>shpl:appliesToExecutionProfile</code>, and <code>shpl:profileShapesGraph</code> as needed. A <code>shpl:CapabilityDescriptor</code> summarizes PDP <a data-lt="Capability">capabilities</a>.</p>
+</section>
+
+<section id="versioning" class="normative">
+<h2>Versioning</h2>
+<p>SPL policies pin <code>shpl:specVersion</code> to an IRI of the form <code>https://w3id.org/shacl-policy-language/spec/v<var>major</var>.<var>minor</var>.<var>patch</var></code>. In <code>spl.ttl</code>, <code>shpl:specVersion</code> and <code>shpl:conformsToProfile</code> are asserted as <code>rdfs:subPropertyOf</code> <code>dct:conformsTo</code>, so generic Dublin Core queries also see spec and <a data-lt="Domain profile">domain profile</a> pins on an <a data-lt="SPL policy">SPL policy</a>.</p>
+</section>
+
+<section id="security">
+<h2>Security considerations</h2>
+
+<h3>Untrusted graphs</h3>
+<p>SPL policies, <a>Access request graph</a> inputs, and referenced vocabulary graphs MUST be obtained from trust anchors appropriate to the deployment (for example signed artifacts, authenticated endpoints, or local sealed stores). A PDP that evaluates attacker-controlled Turtle can be made to load arbitrary IRIs, shapes, and action-closure triples, which becomes remote code or data exfiltration when combined with SPARQL extensions or external hooks.</p>
+
+<h3>SHACL and SPARQL surfaces</h3>
+<p><a>SPL-Full</a> allows SHACL constructs whose semantics depends on [[SHACL12-SPARQL]]. Treat SPARQL execution in policy evaluation as a <strong>privilege boundary</strong>: cap time and memory, forbid or sandbox <code>SERVICE</code> unless explicitly allowed, and log policy identifiers that contributed to queries. <a>SPL-Core</a> reduces this surface but does not remove denial-of-resource risks from pathological shapes; deployments SHOULD still bound validation work.</p>
+
+<h3>Hooks and external calls</h3>
+<p><code>shpl:EnvironmentalHook</code> and <code>shpl:ExternalHook</code> are natural attachment points for network or system calls. Implementations MUST authenticate and authorize those calls, apply timeouts, and avoid forwarding unsanitized request attributes into queries or logs. See <a href="#hooks">Node expression hooks</a> for normative failure behavior when hooks are missing or exceed limits.</p>
+
+<h3>Decisions at trust boundaries</h3>
+<p><a>Decision graph</a>s SHOULD be integrity-protected when consumed outside the PDP process (for example signatures, TLS within a trust domain, or append-only audit logs). Without that, an attacker who can inject or modify in-flight RDF can change <code>shpl:outcome</code> or strip obligations. Binding decisions to the originating request (<code>shpl:requestRef</code>) and policy version (<code>shpl:specVersion</code> on the evaluated policy) helps downstream systems detect replay or stale evaluation.</p>
+
+<h3>Credential and policy misuse</h3>
+<p>Even with <a href="#holder-binding">Holder binding</a> and <a href="#credential-verification">Credential verification</a>, deployments MUST still enforce issuer trust, audience or scope constraints, and revocation outside SPL’s core vocabulary. Policies that emit rich <code>shpl:explanation</code> graphs can become a channel for leaking sensitive attribute data; default to <code>shpl:NoExplanation</code> for Internet-facing PDPs unless a risk assessment says otherwise (<a href="#privacy">Privacy considerations</a>).</p>
+</section>
+
+<section id="privacy">
+<h2>Privacy considerations</h2>
+
+<h3>Data minimization</h3>
+<p>Clients SHOULD attach only the credentials and claims strictly needed for the decision. PDPs SHOULD evaluate conditions against the smallest materialized graph practical and SHOULD NOT retain request or decision graphs longer than policy, law, or audit schedules require.</p>
+
+<h3>Correlation and linkability</h3>
+<p>Stable <code>shpl:agent</code> IRIs, credential identifiers, and repeated <code>shpl:requestRef</code> patterns enable correlation across requests. Deployments that need anonymity or unlinkability require controls outside SPL core (for example pairwise identifiers, selective disclosure, or minimal proofs) via <a href="#companion-profiles">Companion profiles</a>.</p>
+
+<h3>Explanations and logging</h3>
+<p><code>shpl:SummaryExplanation</code> and <code>shpl:FullExplanation</code> can embed attribute values, paths, or subgraphs that are sensitive in regulated contexts. PEPs and log sinks SHOULD treat explanation payloads as personal or security-sensitive data and apply redaction, access control, and retention limits. <code>shpl:Indeterminate</code> responses SHOULD carry only the minimum detail needed for operators to act on <code>shpl:reason</code>.</p>
+
+<h3>Hook-derived attributes</h3>
+<p>Hooks that read location, purpose of use, or environment can reveal sensitive context when echoed into decisions or obligations. PDPs SHOULD document which hook values appear in <a>Decision graph</a> outputs and offer configuration to suppress them.</p>
+</section>
+
+<section id="examples" class="informative">
+<h2>Examples</h2>
+<p>The fragments below are <strong>informative</strong>. A complete <a data-lt="SPL policy">SPL policy</a> still needs <code>shpl:profile</code>, <code>shpl:specVersion</code>, and other triples on the policy resource as in <a href="#spl-in-five">SPL in five minutes</a>.</p>
+
+<section id="ex1">
+<h3>Example 1: Permit read if age &ge; 18</h3>
+<p>Same content as <a href="#spl-in-five">SPL in five minutes</a>: a <code>shpl:Permit</code> on <code>ex:AdultOnly</code> and <code>odrl:read</code> with a <code>shpl:condition</code> that requires at least one credential whose subject has <code>ex:age</code> at least 18, plus a postcondition <code>shpl:duty</code> that adds an audit-sink triple when the rule applies.</p>
+</section>
+
+<section id="ex2">
+<h3>Example 2: Deny if under 13</h3>
+<p>A <code>shpl:Deny</code> on the same target and action, but the condition matches when some credential subject has <code>ex:age</code> strictly less than 13. When that shape is satisfied, the rule contributes Deny (child-safety style guard). If no credential matches, this rule’s condition is not satisfied, so this fragment alone does not force Deny—final outcome depends on other rules and combination semantics in <a href="#evaluation">Evaluation semantics</a>.</p>
+<pre class="nohighlight">
+ex:Under13 a shpl:Rule ;
+  shpl:effect shpl:Deny ;
+  shpl:target ex:AdultOnly ;
+  shpl:action odrl:read ;
+  shpl:condition [
+    a sh:NodeShape ;
+    sh:property [
+      sh:path shpl:credential ;
+      sh:qualifiedValueShape [
+        a sh:NodeShape ;
+        sh:property [
+          sh:path cred:credentialSubject ;
+          sh:node [ sh:property [ sh:path ex:age ; sh:maxExclusive 13 ] ]
+        ]
+      ] ;
+      sh:qualifiedMinCount 1
+    ]
+  ] .
+</pre>
+</section>
+
+<section id="ex3">
+<h3>Example 3: Two credentials (disjoint qualified shapes)</h3>
+<p><strong>Intent:</strong> allow read on <code>ex:ResearchDb</code> only when the request lists <strong>two distinct</strong> <code>shpl:credential</code> nodes—one proving adulthood and one proving <code>ex:clearance</code> is <code>ex:Secret</code>. Without disjointness, one credential satisfying both inner shapes could satisfy both counts.</p>
+<p>Two <code>sh:property</code> constraints on <code>shpl:credential</code>, each with <code>sh:qualifiedMinCount 1</code>, do <strong>not</strong> by themselves require two different credentials: one credential that satisfies both inner shapes would satisfy both. Set <code>sh:qualifiedValueShapesDisjoint true</code> on the surrounding <code>sh:NodeShape</code> so that distinct values are required for each qualified shape at the same path (each value is validated as its own <a data-lt="focus node">focus node</a> in SHACL).</p>
+<pre class="nohighlight">
+ex:TwoVC a shpl:Rule ;
+  shpl:effect shpl:Permit ;
+  shpl:target ex:ResearchDb ;
+  shpl:action odrl:read ;
+  shpl:condition [
+    a sh:NodeShape ;
+    sh:qualifiedValueShapesDisjoint true ;
+    sh:property [
+      sh:path shpl:credential ;
+      sh:qualifiedValueShape [
+        a sh:NodeShape ;
+        sh:property [ sh:path cred:credentialSubject ;
+          sh:node [ sh:property [ sh:path ex:age ; sh:minInclusive 18 ] ] ]
+      ] ;
+      sh:qualifiedMinCount 1
+    ] ;
+    sh:property [
+      sh:path shpl:credential ;
+      sh:qualifiedValueShape [
+        a sh:NodeShape ;
+        sh:property [ sh:path cred:credentialSubject ;
+          sh:node [ sh:property [ sh:path ex:clearance ; sh:hasValue ex:Secret ] ] ]
+      ] ;
+      sh:qualifiedMinCount 1
+    ]
+  ] .
+</pre>
+</section>
+
+<section id="ex4">
+<h3>Example 4: Permit + postcondition audit duty</h3>
+<p><code>ex:LogDuty</code> defines a <code>shpl:Duty</code> that, when materialized, uses <code>sh:TripleRule</code> to add an <code>ex:auditSink</code> triple (log endpoint) on the obligation. <code>ex:ReadAndLog</code> is a <code>shpl:Permit</code> for <code>odrl:read</code> on <code>ex:Document</code> with no <code>shpl:condition</code>, so it applies on every matching read; it references <code>ex:LogDuty</code> so a successful permit also yields a postcondition obligation for auditing.</p>
+<pre class="nohighlight">
+ex:LogDuty a shpl:Duty ;
+  shpl:triggersOn shpl:OnRuleApplied ;
+  shpl:timing shpl:Postcondition ;
+  sh:rule [
+    a sh:TripleRule ;
+    sh:subject sh:this ;
+    sh:predicate ex:auditSink ;
+    sh:object &lt;https://example.com/audit&gt;
+  ] .
+
+ex:ReadAndLog a shpl:Rule ;
+  shpl:effect shpl:Permit ;
+  shpl:target ex:Document ;
+  shpl:action odrl:read ;
+  shpl:duty ex:LogDuty .
+</pre>
+<p class="note">No <code>shpl:condition</code> means the rule applies whenever target and action match.</p>
+</section>
+
+<section id="ex5">
+<h3>Example 5: Deny with breach-response duty</h3>
+<p><code>ex:NoExternalRead</code> denies <code>odrl:read</code> on <code>ex:InternalDoc</code> with no condition (any applicable read is prohibited). <code>ex:NotifyDuty</code> is triggered with <code>shpl:OnRuleViolated</code>: when this Deny rule is satisfied and contributes, the duty’s rule emits a <code>ex:notify</code> triple (for example alerting security)—a breach-response pattern on top of Deny.</p>
+<pre class="nohighlight">
+ex:NotifyDuty a shpl:Duty ;
+  shpl:triggersOn shpl:OnRuleViolated ;
+  shpl:timing shpl:Postcondition ;
+  sh:rule [
+    a sh:TripleRule ;
+    sh:subject sh:this ;
+    sh:predicate ex:notify ;
+    sh:object &lt;mailto:security@example.com&gt;
+  ] .
+
+ex:NoExternalRead a shpl:Rule ;
+  shpl:effect shpl:Deny ;
+  shpl:target ex:InternalDoc ;
+  shpl:action odrl:read ;
+  shpl:duty ex:NotifyDuty .
+</pre>
+</section>
+
+<section id="ex6">
+<h3>Example 6: Decision graph</h3>
+<p>Illustrates a <code>shpl:Decision</code> after a permit: <code>shpl:outcome</code>, <code>shpl:appliedRule</code> pointing at the winning rule, an <code>shpl:obligation</code> block in <code>shpl:ObligationPending</code> with payload triples for the PEP, and <code>shpl:requestRef</code> linking to the <code>shpl:AccessRequest</code>.</p>
+<pre class="nohighlight">
+ex:Dec a shpl:Decision ;
+  shpl:outcome shpl:Permit ;
+  shpl:appliedRule ex:AdultRead ;
+  shpl:obligation [
+    a shpl:Obligation ;
+    shpl:fromRule ex:AdultRead ;
+    shpl:timing shpl:Postcondition ;
+    shpl:state shpl:ObligationPending ;
+    ex:auditSink &lt;https://example.com/audit&gt;
+  ] ;
+  shpl:requestRef ex:Req1 .
+</pre>
+</section>
+
+<section id="ex6b">
+<h3>Example 6b: Deny with reason</h3>
+<p>A compact Deny decision: <code>shpl:outcome shpl:Deny</code>, a machine-readable <code>shpl:reason</code> (<code>shpl:CredentialNotVerified</code>), <code>shpl:appliedRule</code> naming the contributing rule, and <code>shpl:requestRef</code> for traceability—typical when the PDP denies without materializing obligations.</p>
+<pre class="nohighlight">
+ex:DecDeny a shpl:Decision ;
+  shpl:outcome shpl:Deny ;
+  shpl:reason shpl:CredentialNotVerified ;
+  shpl:appliedRule ex:Under13 ;
+  shpl:requestRef ex:Req1 .
+</pre>
+</section>
+</section>
+
+<section id="appendix-odrl" class="appendix informative">
+<h2>Appendix A: ODRL mapping (informative)</h2>
+<section id="appendix-odrl-rules">
+<h3>Rule types</h3>
+<table>
+<thead><tr><th>ODRL</th><th>SPL v0.3</th></tr></thead>
+<tbody>
+<tr><td><code>odrl:Permission</code></td><td><code>shpl:Rule</code> with <code>shpl:effect shpl:Permit</code></td></tr>
+<tr><td><code>odrl:Prohibition</code></td><td><code>shpl:Rule</code> with <code>shpl:effect shpl:Deny</code></td></tr>
+<tr><td><code>odrl:Duty</code> (as a rule type)</td><td><code>shpl:Duty</code> attached with <code>shpl:duty</code>; trigger semantics are stated by <code>shpl:triggersOn</code></td></tr>
+<tr><td>&mdash; (no single ODRL rule class)</td><td><code>shpl:Rule</code> with <code>shpl:effect shpl:Obligate</code> &mdash; materializes <strong>obligations</strong> without a <strong>permission</strong> on the same rule; use when policy should only impose duties for a target and action.</td></tr>
+</tbody>
+</table>
+<p>In [[ODRL]], <code>odrl:permission</code> may link to nested <code>odrl:duty</code> resources. In SPL, link the same duties to the governing <code>shpl:Rule</code> with <code>shpl:duty</code> whether the rule effect is <code>shpl:Permit</code> or <code>shpl:Deny</code> (for example breach-response duties on prohibitions).</p>
+</section>
+<section id="appendix-odrl-structure">
+<h3>Policy structure and parties</h3>
+<table>
+<thead><tr><th>ODRL [[ODRL]]</th><th>SPL v0.3</th></tr></thead>
+<tbody>
+<tr><td><code>odrl:Policy</code> / <code>odrl:PolicySet</code></td><td><code>shpl:Policy</code> (one SPL policy aggregates rules for evaluation in this version)</td></tr>
+<tr><td><code>odrl:Rule</code> (permission, prohibition, duty)</td><td><code>shpl:Rule</code> or <code>shpl:Duty</code> as in the table above</td></tr>
+<tr><td><code>odrl:Asset</code> (target of a rule)</td><td><code>shpl:target</code> on rules and on <code>shpl:AccessRequest</code>; use <code>odrl:Asset</code> typing where interop with ODRL is needed</td></tr>
+<tr><td><code>odrl:Party</code>, <code>odrl:assigner</code>, <code>odrl:assignee</code></td><td><code>shpl:Party</code>, <code>shpl:assigner</code>, <code>shpl:assignee</code> on <code>shpl:Rule</code> (ontology: <code>skos:exactMatch</code> to the ODRL properties in <code>spl.ttl</code>)</td></tr>
+<tr><td><code>odrl:Action</code></td><td><code>shpl:action</code> on rules and requests; action hierarchy via <code>odrl:includedIn</code> / <code>shpl:impliedAction</code> per <a href="#actions">Actions</a></td></tr>
+</tbody>
+</table>
+</section>
+<section id="appendix-odrl-constraints">
+<h3>Constraints &rarr; SHACL (pattern)</h3>
+<p>ODRL <code>odrl:constraint</code> left/right/operator triples do not appear in SPL v0.3 core. Map each constraint to a <code>sh:property</code> (or <code>sh:sparql</code> in SPL-Full) on the <a>Access request graph</a>. Typical patterns:</p>
+<table>
+<thead><tr><th>ODRL pattern</th><th>SHACL sketch</th></tr></thead>
+<tbody>
+<tr><td><code>odrl:eq</code> on a literal</td><td><code>sh:hasValue</code> or <code>sh:minInclusive</code>/<code>sh:maxInclusive</code> with equal bounds</td></tr>
+<tr><td><code>odrl:gt</code> / <code>odrl:lt</code></td><td><code>sh:minExclusive</code> / <code>sh:maxExclusive</code> on a path into <code>cred:credentialSubject</code></td></tr>
+<tr><td><code>odrl:isPartOf</code> / set membership</td><td><code>sh:in</code> or <code>sh:class</code> on an IRI-valued path</td></tr>
+<tr><td>Compound <code>odrl:and</code>/<code>odrl:or</code></td><td><code>sh:and</code> / <code>sh:or</code> of nested shapes</td></tr>
+<tr><td>Temporal / spatial constraints</td><td>SHACL on typed literals, or companion profiles using OWL-Time / GeoSPARQL</td></tr>
+</tbody>
+</table>
+</section>
+<section id="appendix-odrl-not">
+<h3>Not mapped in core</h3>
+<p>ODRL defines <strong>policy negotiation</strong> artifacts such as <code>odrl:Offer</code>, <code>odrl:Request</code>, and <code>odrl:Agreement</code>, optional human-oriented metadata, and patterns for composing or comparing policies outside a single PDP invocation [[ODRL]]. SPL v0.3 core deliberately does not fix lifecycle protocols, merge semantics, or legal prose: it specifies only how a <code>shpl:Policy</code> is validated and evaluated against an <code>shpl:AccessRequest</code> to produce a <code>shpl:Decision</code> (the same separation as between transport and the XACML reference architecture in <a href="#ca-reference-architecture">Reference architecture (XACML)</a>).</p>
+<p>A companion profile (see <a href="#companion-profiles">Companion profiles</a>, <code>https://w3id.org/shacl-policy-language/profile/negotiation</code>) or another specification MAY define how negotiation state is represented in RDF, how an <code>odrl:Agreement</code> is projected to or linked with a <code>shpl:Policy</code>, or how multiple policy sources are combined <em>before</em> evaluation. Until such a profile exists, implementations that need ODRL negotiation SHOULD use ODRL and related specs for interchange and treat SPL as the evaluation and decision layer.</p>
+</section>
+</section>
+
+<section id="appendix-spl-spl" class="appendix normative">
+<h2>Appendix B: SPL-SPL shapes graph</h2>
+<p>Normative file: <a href="https://w3id.org/shacl-policy-language/spl-spl.ttl"><code>spl-spl.ttl</code></a> (mirrored in this repository). The graph validates <a data-lt="SPL policy">SPL policies</a>, rules, <a data-lt="Duty">duties</a>, access requests, decisions, hooks, profiles, and capability descriptors.</p>
+</section>
+
+<section id="appendix-jsonld" class="appendix">
+<h2>Appendix C: JavaScript Object Notation for Linked Data (JSON-LD) context</h2>
+<p>Published as <a href="https://w3id.org/shacl-policy-language/spl-context.jsonld"><code>spl-context.jsonld</code></a>; compact keys align with ODRL where possible. The context is <strong>not</strong> normative over Turtle: it is a convenience for HTTP APIs.</p>
+<p>Duty payloads still use SHACL rule terms such as <code>sh:rule</code> and <code>sh:TripleRule</code>; profiles MAY publish additional context terms for domain-specific payload predicates.</p>
+<pre class="example nohighlight" title="SPL policy fragment (JSON-LD)">
+{
+  "@context": "https://w3id.org/shacl-policy-language/spl-context.jsonld",
+  "@id": "https://example.com/policies/adult",
+  "type": "Policy",
+  "profile": { "@id": "https://w3id.org/shacl-policy-language#Core" },
+  "specVersion": { "@id": "https://w3id.org/shacl-policy-language/spec/v0.3.0" },
+  "conflictStrategy": { "@id": "https://w3id.org/shacl-policy-language#DenyOverrides" }
+}
+</pre>
+<pre class="example nohighlight" title="Decision (JSON-LD)">
+{
+  "@context": "https://w3id.org/shacl-policy-language/spl-context.jsonld",
+  "@id": "https://example.com/decisions/d1",
+  "type": "Decision",
+  "outcome": { "@id": "https://w3id.org/shacl-policy-language#Permit" },
+  "requestRef": { "@id": "https://example.com/req/1" },
+  "appliedRule": [{ "@id": "https://example.com/policies#AdultRead" }],
+  "obligation": [{
+    "type": "Obligation",
+    "fromRule": { "@id": "https://example.com/policies#AdultRead" },
+    "timing": { "@id": "https://w3id.org/shacl-policy-language#Postcondition" },
+    "state": { "@id": "https://w3id.org/shacl-policy-language#ObligationPending" }
+  }]
+}
+</pre>
+<p>Implementations MAY use the short terms from the context where the active context defines them.</p>
+</section>
+
+<section id="appendix-tests" class="appendix normative">
+<h2>Appendix D: Conformance test suite</h2>
+<p>This appendix states the <strong>minimum</strong> expectations for a conformant test runner that claims SPL v0.3 compatibility. A richer protocol (RDF canonicalization, deterministic hook bindings, interchange of implementation-specific triples) remains reserved to <strong><code>https://w3id.org/shacl-policy-language/profile/conformance-tests</code></strong>.</p>
+<ul>
+<li><strong>Policy validation</strong> &mdash; Before evaluation, each input <a data-lt="SPL policy">SPL policy</a> graph under test MUST be validated against the normative SPL-SPL shapes graph in <a href="#appendix-spl-spl">Appendix B</a> plus any <code>shpl:profileShapesGraph</code> declared by <a data-lt="Domain profile">domain profiles</a> referenced in the test fixture.</li>
+<li><strong>Request validation</strong> &mdash; Each <code>shpl:AccessRequest</code> fixture SHOULD validate against SPL-SPL where shapes exist for requests.</li>
+<li><strong>Evaluation</strong> &mdash; The runner MUST apply <a href="#evaluation">Evaluation semantics</a> (including <a href="#hooks">hooks</a> and <a href="#holder-binding">Holder binding</a>) using a PDP configuration documented with the test (execution profile, supported capabilities, and any hook bindings).</li>
+<li><strong>Decision check</strong> &mdash; For tests that ship an expected Turtle graph under <code>tests/expected/</code>, the runner MUST compare the produced <a>Decision graph</a> using full RDF isomorphism after a documented normalization step (for example stable blank-node skolemization or canonical RDF forms agreed for that test corpus). If normalization is not yet fixed by the companion profile, the test manifest MUST state the normalization algorithm used.</li>
+<li><strong>Negative tests</strong> &mdash; Policies or requests that are intentionally invalid MUST fail SPL-SPL validation before any evaluation step is applied.</li>
+</ul>
+<p>Tests under <code>tests/</code> use manifests in <code>tests/manifests/</code>; this repository provides fixtures that illustrate the above expectations.</p>
+</section>
+
+<section id="appendix-vocab" class="appendix">
+<h2>Appendix E: RDF vocabulary reference</h2>
+<p>The full ontology, labels, and comments live in <a href="https://w3id.org/shacl-policy-language/spl.ttl"><code>spl.ttl</code></a>. For why individual terms exist, see <a href="#goals-rationale">Design rationale</a> in <a href="#goals">Goals and background</a>.</p>
+</section>
+
+<section id="appendix-conventions" class="appendix informative">
+<h2>Appendix F: Document conventions</h2>
+<p>This appendix is <strong>informative</strong>. It records editorial conventions used so the specification can be read alongside common Technical Report practice (clear normative vs informative labeling, stable requirement ids, and separable examples).</p>
+<ul>
+<li><strong>Sections</strong> &mdash; Major numbered clauses use <code>&lt;section&gt;</code> elements with <code>class="normative"</code> or <code>class="informative"</code> (or <code>class="appendix"</code>) as appropriate. The ReSpec processor may inject section numbers in rendered output.</li>
+<li><strong>Requirements</strong> &mdash; Normative requirements use BCP&nbsp;14 keywords in capitals and are often marked with <code>class="req"</code> and a stable <code>id</code> for cross-referencing.</li>
+<li><strong>Examples</strong> &mdash; Turtle, JSON-LD, and tabular examples marked informative are not normative unless they duplicate a normative clause verbatim.</li>
+<li><strong>Algorithms</strong> &mdash; The ordered list in <a href="#evaluation">Evaluation semantics</a> is the normative evaluation algorithm; subsections refine outcomes without replacing those steps.</li>
+<li><strong>Ontology and shapes</strong> &mdash; Where prose and machine-readable files disagree on a wire enumeration or cardinality, <a href="#appendix-spl-spl">Appendix B</a> and <code>spl.ttl</code> take precedence for implementers until errata are published.</li>
+</ul>
+</section>
+
+<section id="appendix-ack" class="appendix informative">
+<h2>Appendix G: Acknowledgements</h2>
+<p>The editors thank early readers of the SPL editor’s draft and contributors filing issues and pull requests in the <a href="https://github.com/geoknoesis/shacl-policy-lang">source repository</a>. Specific name attribution is intentionally omitted until contributors have recorded consent; please open an issue to be listed by name.</p>
+</section>
+
 </body>
 </html>

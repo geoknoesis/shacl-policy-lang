@@ -1,0 +1,19 @@
+﻿@prefix shpl: <https://w3id.org/shacl-policy-language#> .
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+@prefix ex:   <http://example.com/ns#> .
+
+<>
+  a shpl:Policy ;
+  shpl:profile shpl:Core ;
+  shpl:specVersion <https://w3id.org/shacl-policy-language/spec/v0.3.0> ;
+  shpl:conflictStrategy shpl:PermitOverrides .
+
+ex:AlwaysAllow a shpl:Rule ;
+  shpl:effect shpl:Permit ;
+  shpl:target ex:AdultOnlyResource ;
+  shpl:action odrl:read .
+
+ex:AlwaysDeny a shpl:Rule ;
+  shpl:effect shpl:Deny ;
+  shpl:target ex:AdultOnlyResource ;
+  shpl:action odrl:read .

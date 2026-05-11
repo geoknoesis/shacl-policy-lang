@@ -1,0 +1,40 @@
+﻿@prefix shpl:    <https://w3id.org/shacl-policy-language#> .
+@prefix shpltst: <https://w3id.org/shacl-policy-language/test-suite#> .
+@prefix mf:      <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+
+<>
+  a shpltst:TestManifest ;
+  rdfs:label "SPL conformance test suite - negative document validation" ;
+  mf:entries (
+    <#test-document-missing-spec-version>
+    <#test-policy-missing-action>
+    <#test-duty-empty-fails-validation>
+  ) .
+
+<#test-document-missing-spec-version>
+  a shpltst:TestCase ;
+  rdfs:label "Document missing shpl:specVersion fails SPL-SPL validation" ;
+  shpltst:category "negative" ;
+  shpltst:requiredProfile shpl:Core ;
+  shpltst:policyGraph <../policies/policy-bad-no-spec-version.ttl> ;
+  shpltst:requestGraph <../requests/request-alice-read-doc.ttl> ;
+  shpltst:expectedDocumentValid false .
+
+<#test-policy-missing-action>
+  a shpltst:TestCase ;
+  rdfs:label "Rule missing shpl:action fails SPL-SPL validation" ;
+  shpltst:category "negative" ;
+  shpltst:requiredProfile shpl:Core ;
+  shpltst:policyGraph <../policies/policy-bad-no-action.ttl> ;
+  shpltst:requestGraph <../requests/request-alice-read-doc.ttl> ;
+  shpltst:expectedDocumentValid false .
+
+<#test-duty-empty-fails-validation>
+  a shpltst:TestCase ;
+  rdfs:label "Duty with no obligation materialization fails SPL-SPL validation" ;
+  shpltst:category "negative" ;
+  shpltst:requiredProfile shpl:Core ;
+  shpltst:policyGraph <../policies/policy-bad-duty-empty.ttl> ;
+  shpltst:requestGraph <../requests/request-alice-read-doc.ttl> ;
+  shpltst:expectedDocumentValid false .
